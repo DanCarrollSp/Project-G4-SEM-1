@@ -1,4 +1,0 @@
-﻿  Main.cpp
-  LINK : C:\Users\gameuser\Desktop\Project-G4-SEM-1\Raylib first project\x64\Debug\Raylib first project.exe not found or not built by the last incremental link; performing full link
-LINK : warning LNK4098: defaultlib 'MSVCRT' conflicts with use of other libs; use /NODEFAULTLIB:library
-  Raylib first project.vcxproj -> C:\Users\gameuser\Desktop\Project-G4-SEM-1\Raylib first project\x64\Debug\Raylib first project.exe
