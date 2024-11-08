@@ -25,6 +25,8 @@ Image GenerateProceduralMap(int width, int height)
             else {
                 pixels[y * width + x] = BLACK;  // Path
             }
+
+            if (y == 0 or y == 19 or x == 0 or x == 19)pixels[y * width + x] = WHITE;
         }
     }
 
