@@ -1,6 +1,8 @@
 #include "raylib.h"
 #include <stdlib.h>
 #include <time.h>
+#include "raymath.h"
+
 
 #define MAP_WIDTH 20       // Width of the maze
 #define MAP_HEIGHT 20      // Height of the maze
@@ -19,7 +21,7 @@ Image GenerateProceduralMap(int width, int height)
         for (int x = 0; x < width; x++)
         {
             // Randomly place walls or paths
-            if (rand() % 4 == 0) {
+            if (rand() % 6 == 0) {
                 pixels[y * width + x] = WHITE;  // Wall
             }
             else {
@@ -27,6 +29,7 @@ Image GenerateProceduralMap(int width, int height)
             }
 
             if (y == 0 or y == 19 or x == 0 or x == 19)pixels[y * width + x] = WHITE;
+            if (y == 10 && x == 10)pixels[y * width + x] = BLACK;//Player start point is always free
         }
     }
 
@@ -53,6 +56,10 @@ int main(void)
     const int screenWidth = 1920;
     const int screenHeight = 1080;
     InitWindow(screenWidth, screenHeight, "raylib [models] example - procedural first person maze");
+    ToggleFullscreen();
+
+    // Set the mouse cursor to the center of the screen at the start
+    SetMousePosition(screenWidth / 2, screenHeight / 2);
 
     // Initialize random seed for procedural generation
     srand((unsigned int)time(NULL));
@@ -88,6 +95,47 @@ int main(void)
     {
         Vector3 oldCamPos = camera.position;  // Store old camera position
         UpdateCamera(&camera, CAMERA_FIRST_PERSON);
+
+        Vector3 direction = Vector3Subtract(camera.target, camera.position);
+        direction = Vector3Normalize(direction);
+
+        //float playerSpeed = 0.05f;  // Adjust this value to control movement speed
+
+        //if (IsKeyDown(KEY_W)) {
+        //    camera.position.x += direction.x * playerSpeed;
+        //    camera.position.z += direction.z * playerSpeed;
+        //}
+        //if (IsKeyDown(KEY_S)) {
+        //    camera.position.x -= direction.x * playerSpeed;
+        //    camera.position.z -= direction.z * playerSpeed;
+        //}
+        //if (IsKeyDown(KEY_D)) {
+        //    Vector3 left = Vector3CrossProduct(direction, camera.up);
+        //    left = Vector3Normalize(left);
+        //    camera.position.x += left.x * playerSpeed;
+        //    camera.position.z += left.z * playerSpeed;
+        //}
+        //if (IsKeyDown(KEY_A)) {
+        //    Vector3 right = Vector3CrossProduct(camera.up, direction);
+        //    right = Vector3Normalize(right);
+        //    camera.position.x += right.x * playerSpeed;
+        //    camera.position.z += right.z * playerSpeed;
+        //}
+
+        // Move the target slightly along the direction vector away from the wall
+        float cameraCollisionDistance = 0.1f;
+
+        Vector3 testPos = Vector3Add(camera.position, Vector3Scale(direction, cameraCollisionDistance));
+        int testCellX = (int)(testPos.x - mapPosition.x + 0.5f);
+        int testCellY = (int)(testPos.z - mapPosition.z + 0.5f);
+
+        if (testCellX >= 0 && testCellX < MAP_WIDTH && testCellY >= 0 && testCellY < MAP_HEIGHT &&
+            mapPixels[testCellY * MAP_WIDTH + testCellX].r == 255)  // Wall collision detected
+        {
+            camera.position = oldCamPos;  // Revert position
+            camera.target = Vector3Add(oldCamPos, direction);  // Revert target to maintain direction
+        }
+
 
         // Prevent up and down (pitch) rotation of the camera
         //camera.target.y = 20.0f;  // Set pitch to 0 to stop vertical rotation
