@@ -66,7 +66,7 @@ int main(void)
 
         // Check player collision (we simplify to 2D collision detection)
         Vector2 playerPos = { camera.position.x, camera.position.z };
-        float playerRadius = 0.1f;  // Collision radius (player is modelled as a cilinder for collision)
+        float playerRadius = 0.001f;  // Collision radius (player is modelled as a cilinder for collision)
 
         int playerCellX = (int)(playerPos.x - mapPosition.x + 0.5f);
         int playerCellY = (int)(playerPos.y - mapPosition.z + 0.5f);
