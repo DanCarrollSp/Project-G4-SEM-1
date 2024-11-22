@@ -56,6 +56,11 @@ float bobbingSpeed = 18.0f;   // Speed of  bobbing
 float bobbingAmplitude = 6.0f; // Amplitude of the bobbing (height)
 bool isMoving = false;       // Tracks if the player is moving
 
+bool upAgainstWall = false;
+bool shot = false;
+float timer = 0.0f;
+bool timerFinished = false;
+
 int main(void)
 {
     const int screenWidth = 1920;
@@ -124,7 +129,7 @@ int main(void)
         Vector3 direction = Vector3Subtract(camera.target, camera.position);
         direction = Vector3Normalize(direction);
 
-        //float playerSpeed = 0.05f;  // Adjust this value to control movement speed
+        //float playerSpeed = 0.05f; 
 
         //if (IsKeyDown(KEY_W)) {
         //    camera.position.x += direction.x * playerSpeed;
@@ -147,12 +152,22 @@ int main(void)
         //    camera.position.z += right.z * playerSpeed;
         //}
 
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && upAgainstWall == false)
+        {
+            shot = true;
+        }
+
         // Move the target slightly along the direction vector away from the wall
         float cameraCollisionDistance = 0.1f;
+        float cameraCloseDistance = 0.2f;
 
         Vector3 testPos = Vector3Add(camera.position, Vector3Scale(direction, cameraCollisionDistance));
         int testCellX = (int)(testPos.x - mapPosition.x + 0.5f);
         int testCellY = (int)(testPos.z - mapPosition.z + 0.5f);
+
+        Vector3 testPos2 = Vector3Add(camera.position, Vector3Scale(direction, cameraCloseDistance));
+        int testCellX2 = (int)(testPos2.x - mapPosition.x + 0.5f);
+        int testCellY2 = (int)(testPos2.z - mapPosition.z + 0.5f);
 
         if (testCellX >= 0 && testCellX < MAP_WIDTH && testCellY >= 0 && testCellY < MAP_HEIGHT &&
             mapPixels[testCellY * MAP_WIDTH + testCellX].r == 255)  // Wall collision detected
@@ -160,6 +175,48 @@ int main(void)
             camera.position = oldCamPos;  // Revert position
             camera.target = Vector3Add(oldCamPos, direction);  // Revert target to maintain direction
         }
+
+        if (testCellX2 >= 0 && testCellX2 < MAP_WIDTH && testCellY2 >= 0 && testCellY2 < MAP_HEIGHT &&
+            mapPixels[testCellY2 * MAP_WIDTH + testCellX2].r == 255)  // Wall collision detected
+        {
+            upAgainstWall = true;
+        }
+        else
+        {
+            upAgainstWall = false;
+        }
+
+
+
+
+        if (upAgainstWall == true)
+        {
+            shot = false;
+            //handTexture = LoadTexture("resources/HandComingClose.png");
+            handTexture = LoadTexture("resources/HandClose.png");
+        }
+        
+        if (upAgainstWall == false)
+        {
+
+            if (shot == true)
+            {
+                handTexture = LoadTexture("resources/Shot.png");
+
+                timer += GetFrameTime();
+                if (timer >= 0.1f)
+                {
+                    shot = false;
+                    timer = 0;
+                }
+            }
+
+            if (shot == false)
+            {
+                handTexture = LoadTexture("resources/Hand.png");
+            }
+        }
+
 
 
         // Prevent up and down (pitch) rotation of the camera
