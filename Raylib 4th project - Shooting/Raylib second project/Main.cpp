@@ -61,6 +61,8 @@ bool shot = false;
 float timer = 0.0f;
 bool timerFinished = false;
 
+bool aiming = false;
+
 int main(void)
 {
     const int screenWidth = 1920;
@@ -152,11 +154,6 @@ int main(void)
         //    camera.position.z += right.z * playerSpeed;
         //}
 
-        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && upAgainstWall == false)
-        {
-            shot = true;
-        }
-
         // Move the target slightly along the direction vector away from the wall
         float cameraCollisionDistance = 0.1f;
         float cameraCloseDistance = 0.2f;
@@ -189,6 +186,26 @@ int main(void)
 
 
 
+        ////////////////////////////////////////////////////
+
+
+
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && upAgainstWall == false)
+        {
+            shot = true;
+        }
+
+        if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT))
+        {
+            aiming = true;
+        }
+        else
+        {
+            aiming = false;
+        }
+
+
+
         if (upAgainstWall == true)
         {
             shot = false;
@@ -199,7 +216,7 @@ int main(void)
         if (upAgainstWall == false)
         {
 
-            if (shot == true)
+            if (shot == true && aiming == false)
             {
                 handTexture = LoadTexture("resources/Shot.png");
 
@@ -211,13 +228,31 @@ int main(void)
                 }
             }
 
-            if (shot == false)
+            if (shot == true && aiming == true)
+            {
+                handTexture = LoadTexture("resources/AimingShot.png");
+
+                timer += GetFrameTime();
+                if (timer >= 0.1f)
+                {
+                    shot = false;
+                    timer = 0;
+                }
+            }
+
+
+            if (aiming == true && shot == false)
+            {
+                handTexture = LoadTexture("resources/Aiming.png");
+            }
+
+            if (shot == false && aiming == false)
             {
                 handTexture = LoadTexture("resources/Hand.png");
             }
         }
 
-
+        ////////////////////////////////////////////////////////////////////////////////////////////////////
 
         // Prevent up and down (pitch) rotation of the camera
         //camera.target.y = 20.0f;  // Set pitch to 0 to stop vertical rotation
