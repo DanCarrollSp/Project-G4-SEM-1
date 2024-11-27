@@ -5,6 +5,7 @@
 #include <random>
 
 //Local Libs
+#include "Globals.h"
 #include "Player.h"
 #include "World.h"
 
@@ -25,8 +26,14 @@ const int screenHeight = 1080;
 Camera camera = { 0 };//Game camera
 Vector3 mapPosition;//Maps world position
 Texture2D miniMap;//Minimap cubicmap
-Model model;//3d model for the mesh
+
+Texture2D floorTexture;
+Texture2D ceilingTexture;
+Texture2D wallTexture;
+Texture2D doorTexture;
 Color* mapPixels;//Color array for collisions
 
 //Objects
+Globals globals;
 Player player;
+World world;

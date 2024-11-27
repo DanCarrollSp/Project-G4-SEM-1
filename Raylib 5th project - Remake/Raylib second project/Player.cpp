@@ -48,11 +48,11 @@ bool Player::calcWallCollision(Camera& camera, Color* mapPixels, Vector3 mapPosi
     //Run animation code first as actual collision code will return to caller
 
     //Variables to check if player is close enough to a wall collision to enable the upAgainstWall animation
-    Vector3 animTriggerPos = Vector3Add(camera.position, Vector3Scale(direction, 0.3f));//Distance of 0.3 to trigger animation
-    int animTestCellX = animTriggerPos.x - mapPosition.x + 0.5f;
-    int animTestCellY = animTriggerPos.z - mapPosition.z + 0.5f;
+    Vector3 animTriggerPos = Vector3Add(camera.position, Vector3Scale(direction, 0.4f));//Distance of 0.3 to trigger animation
+    int animTestCellX = animTriggerPos.x - mapPosition.x + 0.0f;
+    int animTestCellY = animTriggerPos.z - mapPosition.z + 0.0f;
 
-    if (animTestCellX >= 0 && animTestCellX < mapWidth && animTestCellY >= 0 && animTestCellY < mapHeight && mapPixels[animTestCellY * mapWidth + animTestCellX].r == 255)
+    if (animTestCellX >= 0 && animTestCellX < mapWidth && animTestCellY >= 0 && animTestCellY < mapHeight && mapPixels[animTestCellY * mapWidth + animTestCellX].b > 240)
     {
         closeToWall = true;
     }
@@ -64,12 +64,12 @@ bool Player::calcWallCollision(Camera& camera, Color* mapPixels, Vector3 mapPosi
 
 
     //Variables to check if player is colliding with a wall
-    Vector3 collisionTriggerPos = Vector3Add(camera.position, Vector3Scale(direction, 0.2f));//Distance of 0.2 to trigger collision, avoids clipping through walls
-    collTestCellX = collisionTriggerPos.x - mapPosition.x + 0.5f;
-    collTestCellY = collisionTriggerPos.z - mapPosition.z + 0.5f;
+    Vector3 collisionTriggerPos = Vector3Add(camera.position, Vector3Scale(direction, 0.3f));//Distance of 0.2 to trigger collision, avoids clipping through walls
+    collTestCellX = collisionTriggerPos.x - mapPosition.x + 0.0f;
+    collTestCellY = collisionTriggerPos.z - mapPosition.z + 0.0f;
 
     //Collision detected
-    if (collTestCellX >= 0 && collTestCellX < mapWidth && collTestCellY >= 0 && collTestCellY < mapHeight && mapPixels[collTestCellY * mapWidth + collTestCellX].r == 255)
+    if (collTestCellX >= 0 && collTestCellX < mapWidth && collTestCellY >= 0 && collTestCellY < mapHeight && mapPixels[collTestCellY * mapWidth + collTestCellX].b > 240)
     {
         return true;
     }
