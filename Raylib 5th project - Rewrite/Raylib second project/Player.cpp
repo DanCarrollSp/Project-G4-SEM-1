@@ -14,7 +14,6 @@ Player::Player()
     shot = false;
     //Animation timers
     shotTimer = 0.1f;//time it takes for shot to reset
-    
 }
 
 void Player::HandleInput()
@@ -66,8 +65,8 @@ bool Player::calcWallCollision(Camera& camera, Color* mapPixels, Vector3 mapPosi
 
     //Variables to check if player is colliding with a wall
     Vector3 collisionTriggerPos = Vector3Add(camera.position, Vector3Scale(direction, 0.2f));//Distance of 0.2 to trigger collision, avoids clipping through walls
-    int collTestCellX = collisionTriggerPos.x - mapPosition.x + 0.5f;
-    int collTestCellY = collisionTriggerPos.z - mapPosition.z + 0.5f;
+    collTestCellX = collisionTriggerPos.x - mapPosition.x + 0.5f;
+    collTestCellY = collisionTriggerPos.z - mapPosition.z + 0.5f;
 
     //Collision detected
     if (collTestCellX >= 0 && collTestCellX < mapWidth && collTestCellY >= 0 && collTestCellY < mapHeight && mapPixels[collTestCellY * mapWidth + collTestCellX].r == 255)
@@ -90,11 +89,16 @@ void Player::Animate(int screenWidth, int screenHeight, Camera& camera, Vector3 
     Vector2 handPos = { handPosX, handPosY };//Assign to vector2 for drawing
 
     //Animation assignment
+    ////
+    /// Memory issues may stem from here, future daniel, try giving each of these their own texture var instead of pulling it from the assets folder each time do it once, then reassign the main texture var using the other texture vars
+    ////
     if (closeToWall) handTexture = LoadTexture("resources/HandClose.png");//Close to wall
     else if (aiming && shot) handTexture = LoadTexture("resources/AimingShot.png");//Aiming and shooting
     else if (aiming) handTexture = LoadTexture("resources/Aiming.png");//Just Aiming
     else if (shot) handTexture = LoadTexture("resources/Shot.png");//Shooting without aiming
     else handTexture = LoadTexture("resources/Hand.png");//Idle hand
 
-    DrawTextureEx(handTexture, handPos, 0.0f, 1, WHITE);
+    //20 == map width and height values
+    DrawRectangle(screenWidth - 20 * 4 - 20 + collTestCellX * 4, 20 + collTestCellY * 4, 4, 4, RED);//Draw players position on minimap
+    DrawTextureEx(handTexture, handPos, 0.0f, 1, WHITE);//Draw hand
 }

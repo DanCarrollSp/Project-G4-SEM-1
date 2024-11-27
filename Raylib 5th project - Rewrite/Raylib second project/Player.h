@@ -22,6 +22,10 @@ private:
     //Timer for 'animations'
     float shotTimer;// 0.1 seconds timer, for the time it takes for shot to reset
 
+    //Player world position
+    int collTestCellX;
+    int collTestCellY;
+
 public:
     Player();
 
