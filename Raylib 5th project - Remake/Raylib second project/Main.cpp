@@ -12,7 +12,7 @@ int main(void)
     SetMousePosition(screenWidth / 2, screenHeight / 2);
 
     //Sets up raylibs perspective camera
-    camera.position = Vector3{ 10, 0.5f, 10 };//Camera pos
+    camera.position = Vector3{ 10, 0.6f, 10 };//Camera pos
     camera.up = Vector3{ 0.0f, 10.0f, 0.0f };//Camera orientation
     camera.fovy = 45.0f;//Fov In degrees
     camera.projection = CAMERA_PERSPECTIVE;
@@ -132,8 +132,12 @@ void Draw()
     Vector3 pos1 = { 9.75,0, 10};
     Vector3 pos2 = { 10.25,0, 10 };
     Vector3 pos3 = { 9.75,0, 9.5 };
-    DrawCylinderWires(pos2, 0.15, 0.15, 0.3, 9, ORANGE);
-    DrawCylinder(pos1, 0.15, 0.15, 0.3, 9, YELLOW);
+
+    globals.DrawTexturedCylinder(barrelTexture, pos3, 0.117, 0.35, WHITE);
+
+    globals.DrawTexturedCylinder(barrelTexture, pos1, 0.117, 0.35, WHITE);
+
+    globals.DrawTexturedCylinder(floorTexture, pos2, 0.117, 0.35, WHITE);
 
     EndMode3D();
 

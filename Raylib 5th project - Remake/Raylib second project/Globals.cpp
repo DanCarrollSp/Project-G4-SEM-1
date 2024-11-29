@@ -69,3 +69,16 @@ void Globals::DrawCubeTexture(Texture2D texture, Vector3 position, float width, 
 
     rlSetTexture(0);
 }
+
+void Globals::DrawTexturedCylinder(Texture2D texture, Vector3 position, float radius, float height, Color color)
+{
+    cylinderMesh = GenMeshCylinder(radius, height, 30);
+    cylinderModel = LoadModelFromMesh(cylinderMesh);
+
+    //Apply the texture to the model
+    cylinderModel.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = texture;
+
+    //Draw the textured cylinder
+    DrawModel(cylinderModel, position, 1.0f, color);
+    UnloadModel(cylinderModel);
+}
