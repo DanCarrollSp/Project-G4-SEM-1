@@ -12,7 +12,7 @@
 class Player
 {
 
-private:
+public:
 
     //Texture for players hand 'animations'
     Texture2D handTexture;//main texture
@@ -42,7 +42,9 @@ private:
     int collTestCellX;
     int collTestCellY;
 
+
 public:
+
     Player();
 
     Globals globals;//Giving player access to globals
@@ -50,4 +52,8 @@ public:
     void HandleInput();//Function handles all player controlls for animations.
     void Animate(int screenWidth, int screenHeight, Camera& camera, Vector3 mapPosition);//Draws the players hand on the screen (function called in main) 
     bool calcWallCollision(Camera& camera, Color* mapPixels, Vector3 mapPosition, int mapWidth, int mapHeight, Vector3 direction);//Checks wall collision for movement and to enable closeToWall anim
+
+    //Players shooting/bullets
+    Vector3 hitPoint = { 0 };
+    bool hitTarget = false;
 };

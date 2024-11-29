@@ -84,7 +84,7 @@ void Update()
 void Draw()
 {
     BeginDrawing();
-    ClearBackground(LIGHTGRAY);//Clears screen
+    ClearBackground(BLACK);//Clears screen
     //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
@@ -123,6 +123,10 @@ void Draw()
         }
     }
 
+
+    //Draws a sphere on a shot surfaces
+    if (player.hitTarget && player.shot) DrawSphere(player.hitPoint, 0.1f, RED);//Visualize hit point
+
     EndMode3D();
 
 
@@ -132,7 +136,6 @@ void Draw()
     DrawRectangleLines(screenWidth - MAP_WIDTH * scale - MAP_WIDTH, MAP_WIDTH, MAP_WIDTH * scale, MAP_HEIGHT * scale, RED);//Minimap border
     //Draws the player
     player.Animate(screenWidth, screenHeight, camera, mapPosition);
-
 
     //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     EndDrawing();

@@ -1,4 +1,5 @@
 #include "Player.h"
+#include <iostream>
 
 Player::Player()
 {
@@ -54,7 +55,36 @@ void Player::HandleInput()
 //Wall collision calculation and animation
 bool Player::calcWallCollision(Camera& camera, Color* mapPixels, Vector3 mapPosition, int mapWidth, int mapHeight, Vector3 direction)
 {
-    //Run animation code first as actual collision code will return to caller
+    //Bullet collisions
+    Vector3 rayDirection = Vector3Normalize(Vector3Subtract(camera.target, camera.position));
+
+    //Iterate along the array to detect collision
+    for (float t = 0; t < 50.0f; t += 0.1f)
+    {
+        Vector3 checkPoint = Vector3Add(camera.position, Vector3Scale(rayDirection, t));
+        int cellX = (int)(checkPoint.x - mapPosition.x);
+        int cellY = (int)(checkPoint.z - mapPosition.z);
+
+        if (cellX >= 0 && cellX < MAP_WIDTH && cellY >= 0 && cellY < MAP_HEIGHT)
+        {
+            Color pixelColor = mapPixels[cellY * MAP_WIDTH + cellX];
+
+            //Check if the ray hits anything other than open spaces (BLACK == open spaces)
+            if ((pixelColor.r == WHITE.r && pixelColor.g == WHITE.g && pixelColor.b == WHITE.b) or
+                (pixelColor.r == BLUE.r && pixelColor.g == BLUE.g && pixelColor.b == BLUE.b))
+            {
+                hitTarget = true;
+                hitPoint = checkPoint;
+                break;
+            }
+        }
+    }
+
+
+
+
+
+    /// <--> Run animation code first as actual collision code will return to caller
 
     //Variables to check if player is close enough to a wall collision to enable the upAgainstWall animation
     Vector3 animTriggerPos = Vector3Add(camera.position, Vector3Scale(direction, 0.4f));//Distance of 0.4 to trigger animation
@@ -69,7 +99,6 @@ bool Player::calcWallCollision(Camera& camera, Color* mapPixels, Vector3 mapPosi
     {
         closeToWall = false;
     }
-
 
 
     //Variables to check if player is colliding with a wall
@@ -105,11 +134,12 @@ void Player::Animate(int screenWidth, int screenHeight, Camera& camera, Vector3 
         done = true;
     }
 
-    //Bobbing by bobbing time by bobbing amount
+    //Bobbing hand by bobbing time by bobbing amount
+    Vector2 centerOffset = { 57.5 , 10};//Offset to put the gun dead in the center of the screen for shooting
     float bobbingTextureOffset = sin(bobbingTime) * bobbingAmount;
     float cropOffset = 10;//cropOffset to stop bottom of hand crop showing while texture moves up and down
-    int handPosX = (screenWidth - handTexture.width) / 2;//Set to center of the screen
-    int handPosY = screenHeight - handTexture.height + cropOffset + bobbingTextureOffset;//Set to center of the screen + offset for Height
+    int handPosX = (screenWidth - handTexture.width - centerOffset.x) / 2;//Set to center of the screen
+    int handPosY = screenHeight - handTexture.height + cropOffset + bobbingTextureOffset + centerOffset.y;//Set to center of the screen + offset for Height
     Vector2 handPos = { handPosX, handPosY };//Assign to vector2 for drawing
 
     //Animation assignment
