@@ -31,6 +31,8 @@ Texture2D wallTexture;
 Texture2D doorTexture;
 Color* mapPixels;//Color array for collisions
 
+Texture2D barrelTexture;
+
 //Objects
 Globals globals;
 Player player;

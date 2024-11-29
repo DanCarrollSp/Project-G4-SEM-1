@@ -28,6 +28,8 @@ int main(void)
     ceilingTexture = LoadTexture("resources/ceilingTexture.png");
     wallTexture = LoadTexture("resources/wallTexture.png");
     doorTexture = LoadTexture("resources/door.png");
+    //
+    barrelTexture = LoadTexture("resources/barrel.png");
 
     //Map creation using walls, doors, etc
     mapPixels = LoadImageColors(imMap);//Color map, converts 'image' pixel color data into map data for collisions (black = passavble, else = not passable)
@@ -126,6 +128,12 @@ void Draw()
 
     //Draws a sphere on a shot surfaces
     if (player.hitTarget && player.shot) DrawSphere(player.hitPoint, 0.1f, RED);//Visualize hit point
+
+    Vector3 pos1 = { 9.75,0, 10};
+    Vector3 pos2 = { 10.25,0, 10 };
+    Vector3 pos3 = { 9.75,0, 9.5 };
+    DrawCylinderWires(pos2, 0.15, 0.15, 0.3, 9, ORANGE);
+    DrawCylinder(pos1, 0.15, 0.15, 0.3, 9, YELLOW);
 
     EndMode3D();
 
