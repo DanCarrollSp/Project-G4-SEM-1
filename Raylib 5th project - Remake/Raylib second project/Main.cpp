@@ -127,8 +127,9 @@ void Draw()
 
 
     //Draws the minimap
-    DrawTextureEx(miniMap, Vector2{ screenWidth - MAP_WIDTH * 4.0f - 20, 20.0f }, 0.0f, 4.0f, WHITE);//Minimap
-    DrawRectangleLines(screenWidth - MAP_WIDTH * 4 - 20, 20, MAP_WIDTH * 4, MAP_HEIGHT * 4, RED);//Minimap border
+    float scale = globals.miniMapScale;
+    DrawTextureEx(miniMap, Vector2{ screenWidth - MAP_WIDTH * scale - MAP_WIDTH, MAP_WIDTH }, 0.0f, scale, WHITE);//Minimap
+    DrawRectangleLines(screenWidth - MAP_WIDTH * scale - MAP_WIDTH, MAP_WIDTH, MAP_WIDTH * scale, MAP_HEIGHT * scale, RED);//Minimap border
     //Draws the player
     player.Animate(screenWidth, screenHeight, camera, mapPosition);
 
@@ -136,55 +137,3 @@ void Draw()
     //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     EndDrawing();
 }
-
-
-
-
-
-
-
-
-
-//Vector3 pos = { 0, 0.80, 0 };
-
-//int index = y * MAP_WIDTH + x;
-//Color currentPixelColor = world.pixels[index];//Gets the color of the current pixel
-
-
-////wall
-//if (currentPixelColor.r == WHITE.r && currentPixelColor.g == WHITE.g && currentPixelColor.b == WHITE.b)
-//{
-//    DrawModel(model, mapPosition, 1.0f, WHITE);
-//}
-
-
-
-
-////Door
-//if (currentPixelColor.r == BLUE.r && currentPixelColor.g == BLUE.g && currentPixelColor.b == BLUE.b)
-//{
-//    DrawModel(doorModel, pos, 1.0f, WHITE);
-//}
-
-
-
-
-
-
-
-
-
-            ////Wall
-            //if (world.pixels[x].r == WHITE.r && world.pixels[y].r == WHITE.r &&
-            //    world.pixels[x].g == WHITE.g && world.pixels[y].g == WHITE.g &&
-            //    world.pixels[x].b == WHITE.b && world.pixels[y].b == WHITE.b)
-            //{
-            //    DrawModel(model, mapPosition, 1.0f, WHITE);
-            //}
-
-            //if (world.pixels[x].r == BLUE.r && world.pixels[y].r == BLUE.r &&
-            //    world.pixels[x].g == BLUE.g && world.pixels[y].g == BLUE.g &&
-            //    world.pixels[x].b == BLUE.b && world.pixels[y].b == BLUE.b)
-            //{
-            //    DrawModel(doorModel, mapPosition, 1.0f, WHITE);
-            //}

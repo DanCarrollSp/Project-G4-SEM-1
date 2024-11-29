@@ -7,6 +7,15 @@ Player::Player()
     bobbingSpeed = 18.0f;
     bobbingAmount = 6.0f;
 
+    ////Player textures
+    //closeToWallTexture = LoadTexture("resources/HandClose.png");//Close to wall
+    //aimingShotTexture = LoadTexture("resources/AimingShot.png");//Aiming and shooting
+    //aimingTexture = LoadTexture("resources/Aiming.png");//Just Aiming
+    //shotTexture = LoadTexture("resources/Shot.png");//Shooting without aiming
+    //idleHandTexture = LoadTexture("resources/Hand.png");//Idle hand
+    ////default/idleTexture assignment
+    //handTexture = idleHandTexture;
+ 
     //Animation bools
     isMoving = false;
     closeToWall = false;
@@ -48,9 +57,9 @@ bool Player::calcWallCollision(Camera& camera, Color* mapPixels, Vector3 mapPosi
     //Run animation code first as actual collision code will return to caller
 
     //Variables to check if player is close enough to a wall collision to enable the upAgainstWall animation
-    Vector3 animTriggerPos = Vector3Add(camera.position, Vector3Scale(direction, 0.4f));//Distance of 0.3 to trigger animation
-    int animTestCellX = animTriggerPos.x - mapPosition.x + 0.0f;
-    int animTestCellY = animTriggerPos.z - mapPosition.z + 0.0f;
+    Vector3 animTriggerPos = Vector3Add(camera.position, Vector3Scale(direction, 0.4f));//Distance of 0.4 to trigger animation
+    int animTestCellX = animTriggerPos.x - mapPosition.x;
+    int animTestCellY = animTriggerPos.z - mapPosition.z;
 
     if (animTestCellX >= 0 && animTestCellX < mapWidth && animTestCellY >= 0 && animTestCellY < mapHeight && mapPixels[animTestCellY * mapWidth + animTestCellX].b > 240)
     {
@@ -64,9 +73,10 @@ bool Player::calcWallCollision(Camera& camera, Color* mapPixels, Vector3 mapPosi
 
 
     //Variables to check if player is colliding with a wall
-    Vector3 collisionTriggerPos = Vector3Add(camera.position, Vector3Scale(direction, 0.3f));//Distance of 0.2 to trigger collision, avoids clipping through walls
-    collTestCellX = collisionTriggerPos.x - mapPosition.x + 0.0f;
-    collTestCellY = collisionTriggerPos.z - mapPosition.z + 0.0f;
+    Vector3 movementVector = Vector3Scale(direction, (IsKeyDown(KEY_S) ? -0.3f : 0.3f));
+    Vector3 collisionTriggerPos = Vector3Add(camera.position, movementVector);//Distance of 0.3 to trigger collision, avoids clipping through walls
+    collTestCellX = collisionTriggerPos.x - mapPosition.x;
+    collTestCellY = collisionTriggerPos.z - mapPosition.z;
 
     //Collision detected
     if (collTestCellX >= 0 && collTestCellX < mapWidth && collTestCellY >= 0 && collTestCellY < mapHeight && mapPixels[collTestCellY * mapWidth + collTestCellX].b > 240)
@@ -81,6 +91,20 @@ bool Player::calcWallCollision(Camera& camera, Color* mapPixels, Vector3 mapPosi
 
 void Player::Animate(int screenWidth, int screenHeight, Camera& camera, Vector3 mapPosition)
 {
+    if (done == false)
+    {
+        //Player textures
+        closeToWallTexture = LoadTexture("resources/HandClose.png");//Close to wall
+        aimingShotTexture = LoadTexture("resources/AimingShot.png");//Aiming and shooting
+        aimingTexture = LoadTexture("resources/Aiming.png");//Just Aiming
+        shotTexture = LoadTexture("resources/Shot.png");//Shooting without aiming
+        idleHandTexture = LoadTexture("resources/Hand.png");//Idle hand
+        //default/idleTexture assignment
+        handTexture = idleHandTexture;
+
+        done = true;
+    }
+
     //Bobbing by bobbing time by bobbing amount
     float bobbingTextureOffset = sin(bobbingTime) * bobbingAmount;
     float cropOffset = 10;//cropOffset to stop bottom of hand crop showing while texture moves up and down
@@ -89,16 +113,14 @@ void Player::Animate(int screenWidth, int screenHeight, Camera& camera, Vector3 
     Vector2 handPos = { handPosX, handPosY };//Assign to vector2 for drawing
 
     //Animation assignment
-    ////
-    /// Memory issues may stem from here, future daniel, try giving each of these their own texture var instead of pulling it from the assets folder each time do it once, then reassign the main texture var using the other texture vars
-    ////
-    if (closeToWall) handTexture = LoadTexture("resources/HandClose.png");//Close to wall
-    else if (aiming && shot) handTexture = LoadTexture("resources/AimingShot.png");//Aiming and shooting
-    else if (aiming) handTexture = LoadTexture("resources/Aiming.png");//Just Aiming
-    else if (shot) handTexture = LoadTexture("resources/Shot.png");//Shooting without aiming
-    else handTexture = LoadTexture("resources/Hand.png");//Idle hand
+    if (closeToWall) handTexture = closeToWallTexture;//Close to wall
+    else if (aiming && shot) handTexture = aimingShotTexture;//Aiming and shooting
+    else if (aiming) handTexture = aimingTexture;//Just Aiming
+    else if (shot) handTexture = shotTexture;//Shooting without aiming
+    else handTexture = idleHandTexture;//Idle hand
 
     //20 == map width and height values
-    DrawRectangle(screenWidth - 20 * 4 - 20 + collTestCellX * 4, 20 + collTestCellY * 4, 4, 4, RED);//Draw players position on minimap
+    float scale = globals.miniMapScale;
+    DrawRectangle(screenWidth - MAP_WIDTH * scale - MAP_HEIGHT + collTestCellX * scale, MAP_WIDTH + collTestCellY * scale, scale, scale, RED);//Draw players position on minimap
     DrawTextureEx(handTexture, handPos, 0.0f, 1, WHITE);//Draw hand
 }

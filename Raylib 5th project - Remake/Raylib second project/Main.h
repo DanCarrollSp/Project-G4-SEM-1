@@ -1,3 +1,5 @@
+#pragma once
+
 //Global Libs
 #include "raylib.h"
 #include "raymath.h"
@@ -8,10 +10,6 @@
 #include "Globals.h"
 #include "Player.h"
 #include "World.h"
-
-//Map scale
-#define MAP_WIDTH 20
-#define MAP_HEIGHT 20
 
 
 //Functions

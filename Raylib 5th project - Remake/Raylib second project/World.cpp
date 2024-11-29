@@ -16,7 +16,7 @@ Image World::GenerateProceduralMap(int width, int height)
         for (int x = 0; x < width; x++)
         {
             //Random walls
-            if (rand() % 50 == 0) pixels[y * width + x] = WHITE;//Chances of a cell being a wall (random seeded in main.cpp)
+            if (rand() % 15 == 0) pixels[y * width + x] = WHITE;//Chances of a cell being a wall (random seeded in main.cpp)
             //Boarder walls
             if (y == 0 || y == height - 1 || x == 0 || x == width - 1) pixels[y * width + x] = WHITE;//Makes the map boarder all walls
             //Makes all center paths walkable
@@ -29,10 +29,6 @@ Image World::GenerateProceduralMap(int width, int height)
 
         }
     }
-
-    //leave gaps to make future doors into different rooms
-    //pixels[1 * width + 1] = BLACK;
-    //pixels[(height - 2) * width + (width - 2)] = BLACK;
 
     //Reapplys the modified pixel data to the image to set the worlds generation
     for (int y = 0; y < height; y++)

@@ -1,13 +1,29 @@
+#pragma once
+
 //Global Libs
 #include "raylib.h"
 #include "raymath.h"
+
+//Local Libs
+#include "Globals.h"
+
+//Globals globals;
 
 class Player
 {
 
 private:
+
     //Texture for players hand 'animations'
-    Texture2D handTexture;
+    Texture2D handTexture;//main texture
+    //
+    bool done = false;
+    Texture2D closeToWallTexture;
+    Texture2D aimingShotTexture;
+    Texture2D aimingTexture;
+    Texture2D shotTexture;
+    Texture2D idleHandTexture;
+
 
     //Bobbing variables
     float bobbingTime;
@@ -28,6 +44,8 @@ private:
 
 public:
     Player();
+
+    Globals globals;//Giving player access to globals
 
     void HandleInput();//Function handles all player controlls for animations.
     void Animate(int screenWidth, int screenHeight, Camera& camera, Vector3 mapPosition);//Draws the players hand on the screen (function called in main) 
