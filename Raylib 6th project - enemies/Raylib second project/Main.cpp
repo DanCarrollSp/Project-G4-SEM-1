@@ -63,27 +63,22 @@ int main(void)
 
 void Update()
 {
-    //Camera updates
-    Vector3 oldCamPos = camera.position;//Save the cameras old position (to push the player back on collisions)
-    UpdateCamera(&camera, CAMERA_FIRST_PERSON);//Updates the camera pos
-    //Gets the cameras direction for collision
-    Vector3 direction = Vector3Subtract(camera.target, camera.position);
-    direction = Vector3Normalize(direction);
+    /// Movement & collision detection
+    //Track oldpos for collisions
+    Vector3 oldCamPos = camera.position;
+    //Movement
+    UpdateCamera(&camera, CAMERA_FIRST_PERSON);//Update the camera (movement)
+    //Collision
+    player.PreventBoundingBoxCollisions(world.GetWallBoundingBoxes(), player.hitbox, camera, oldCamPos);//Prevent player from walking through bounding boxes
+    player.PreventBoundingBoxCollision(enemy.GetBoundingBox(), player.hitbox, camera, oldCamPos);//Prevent player from walking through bounding boxes
 
 
     //Player controls
+    player.calcWallCollision(camera, mapPixels, mapPosition, MAP_WIDTH, MAP_HEIGHT, camera.target);
+	player.update(camera);
     player.HandleInput();
     //Enemy AI ()
     enemy.Update();
-
-
-    //Camera collision with mapPixels (white)
-    bool collision = player.calcWallCollision(camera, mapPixels, mapPosition, MAP_WIDTH, MAP_HEIGHT, direction);
-    if (collision)
-    {
-        camera.position = oldCamPos;
-        camera.target = Vector3Add(oldCamPos, direction);
-    }
 }
 
 
@@ -91,11 +86,11 @@ void Draw()
 {
     BeginDrawing();
     ClearBackground(BLACK);//Clears screen
-    //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    BeginMode3D(camera);//Start of 3D Rendering
 
 
-    BeginMode3D(camera);//3d rendering
-
+	//World drawing (walls, doors, floor, ceiling)
     for (int y = 0; y < MAP_HEIGHT; y++)
     {
         for (int x = 0; x < MAP_WIDTH; x++)
@@ -130,37 +125,121 @@ void Draw()
     }
 
 
-    //Draws a RED sphere on a shot walls
-    if (player.hitTarget && player.shot) DrawSphere(player.hitPoint, 0.1f, RED);//Visualize hit point
+	/// Draw entites ///
 
-    //Draws a BLUE sphere on shot hitboxes *********************************************************************************************************
-	Vector3 boxCollision = player.calcBulletCollision(camera, enemy.hitbox);
-    if (boxCollision != Vector3 {0, 0, 0}) DrawSphere(boxCollision, 0.1f, BLUE);
+    debug();//Debugging visuals ( example - shows box collider outlines and raycasts)
+    enemy.Draw(camera);//Draws the enemy, camera for billboarding
+    
+
+    EndMode3D(); //End of 3D rendering
+	//Start of drawing
+
+    //Draws the minimap
+    float scale = globals.miniMapScale / 2;
+    DrawTextureEx(miniMap, Vector2{ screenWidth - MAP_WIDTH * scale - MAP_WIDTH, MAP_WIDTH }, 0.0f, scale, WHITE);//Minimap
+    DrawRectangleLines(screenWidth - MAP_WIDTH * scale - MAP_WIDTH, MAP_WIDTH, MAP_WIDTH * scale, MAP_HEIGHT * scale, RED);//Minimap border
+
+    //Draws the players hand and updates its animations
+    player.Animate(screenWidth, screenHeight, camera, mapPosition);
 
 
 
+
+
+    //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+	EndDrawing(); //End of drawing
+}
+
+
+void debug()
+{
+    //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    ///  Bounding Boxes
+
+	//Wall bounding boxes
+    {
+        std::vector<BoundingBox> boundingBoxes = world.GetWallBoundingBoxes();
+        for (const auto& box : boundingBoxes) DrawBoundingBox(box, RED); // Draw bounding box in red
+    }
+	//Door bounding boxes
+    {
+        std::vector<BoundingBox> boundingBoxes = world.GetDoorBoundingBoxes();
+        for (const auto& box : boundingBoxes) DrawBoundingBox(box, GREEN); // Draw bounding box in red
+    }
+	//Player bounding box
+    DrawBoundingBox(player.hitbox, RED);
+
+
+    //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    /// Raycast hit points
+
+    //Wall-bullet collision point
+    for (int i = 0; i < world.GetWallBoundingBoxes().size(); i++)
+    {
+        Vector3 wallCollision = player.calcBulletCollision(camera, world.GetWallBoundingBoxes()[i]);
+        if (wallCollision != Vector3{ 0, 0, 0 }) DrawSphere(wallCollision, 0.1f, BLUE);
+    }
+    //Door-bullet collision point
+    for (int i = 0; i < world.GetDoorBoundingBoxes().size(); i++)
+    {
+        Vector3 doorCollision = player.calcBulletCollision(camera, world.GetDoorBoundingBoxes()[i]);
+        if (doorCollision != Vector3{ 0, 0, 0 }) DrawSphere(doorCollision, 0.1f, GREEN);
+    }
+
+    
+    //Draws a RED sphere on a shot walls (drawn over by blue hit detection for now)
+    if (player.hitTarget && player.shot) DrawSphere(player.hitPoint, 0.1f, RED);
+
+
+	//Draws a circle crosshair on the first piece of a raycasted line to represent the crosshair
+    Vector3 rayDirection = Vector3Normalize(Vector3Subtract(camera.target, camera.position));
+    Vector3 rayLinePoint = Vector3Add(camera.position, Vector3Scale(rayDirection, 0.1f));
+    DrawSphere(rayLinePoint, 0.0002f, crosshairColor);
+
+    //Draws a BLUE sphere on enemy hitboxes and makes the crosshair red while aiming at enemies
+	Vector3 enemyCollision = player.calcBulletCollision(camera, enemy.hitbox);//returns 0,0,0 if no collision, otherwise returns the collision point
+    if (enemyCollision != Vector3{ 0, 0, 0 })
+    {
+        DrawSphere(enemyCollision, 0.1f, BLUE);
+        crosshairColor = RED;
+    }
+    else crosshairColor = WHITE;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+{
     Vector3 pos1 = { 9.75,0, 10};
     Vector3 pos2 = { 10.25,0, 10 };
     Vector3 pos3 = { 9.75,0, 9.5 };
+
+
 
     globals.DrawTexturedCylinder(barrelTexture, pos3, 0.117, 0.35, WHITE);
 
     globals.DrawTexturedCylinder(barrelTexture, pos1, 0.117, 0.35, WHITE);
 
     globals.DrawTexturedCylinder(floorTexture, pos2, 0.117, 0.35, WHITE);
-
-    enemy.Draw(camera);// ************
-
-    EndMode3D();
-
-
-    //Draws the minimap
-    float scale = globals.miniMapScale;
-    DrawTextureEx(miniMap, Vector2{ screenWidth - MAP_WIDTH * scale - MAP_WIDTH, MAP_WIDTH }, 0.0f, scale, WHITE);//Minimap
-    DrawRectangleLines(screenWidth - MAP_WIDTH * scale - MAP_WIDTH, MAP_WIDTH, MAP_WIDTH * scale, MAP_HEIGHT * scale, RED);//Minimap border
-    //Draws the player
-    player.Animate(screenWidth, screenHeight, camera, mapPosition);
-
-    //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    EndDrawing();
 }
+*/

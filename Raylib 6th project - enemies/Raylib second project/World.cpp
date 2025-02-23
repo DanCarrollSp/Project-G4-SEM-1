@@ -27,6 +27,30 @@ Image World::GenerateProceduralMap(int width, int height)
             if (x == 10) if (y == 0 or y == height - 1) pixels[y * width + x] = BLUE;
             if (y == 10) if (x == 0 or x == height - 1) pixels[y * width + x] = BLUE;
 
+
+
+
+            //Add bounding boxes for walls
+            if (pixels[y * width + x].r == WHITE.r && pixels[y * width + x].g == WHITE.g && pixels[y * width + x].b == WHITE.b)
+            {
+                BoundingBox box;
+                Vector3 min = { x, 0.0f, y };
+                Vector3 max = { x + 1.0f, 1.0f, y + 1.0f };
+                box.min = min;
+                box.max = max;
+                wallBoundingBoxes.push_back(box);
+            }
+            //Add bounding boxes for doors
+            if (pixels[y * width + x].r == BLUE.r && pixels[y * width + x].g == BLUE.g && pixels[y * width + x].b == BLUE.b)
+            {
+                BoundingBox box;
+                Vector3 min = { x, 0.0f, y };
+                Vector3 max = { x + 1.0f, 1.0f, y + 1.0f };
+                box.min = min;
+                box.max = max;
+                doorBoundingBoxes.push_back(box);
+            }
+
         }
     }
 

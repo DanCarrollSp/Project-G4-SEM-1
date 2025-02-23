@@ -16,7 +16,7 @@ public:
 	//Collision detection
     Vector3 collision(Ray ray);
     BoundingBox hitbox;
-
+    BoundingBox GetBoundingBox() const { return hitbox; }
 
 private:
 

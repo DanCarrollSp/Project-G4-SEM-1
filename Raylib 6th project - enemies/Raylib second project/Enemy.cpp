@@ -6,7 +6,7 @@ Enemy::Enemy()
     position = { 5.0f, 0.5f, 5.0f };
     speed = 2.0f;
 
-    // Set up an initial hitbox (assuming a 1x1x1 size enemy)
+    // Set up an initial hitbox
     hitbox.min = { position.x - hitBoxWidth, position.y - hitBoxHeight, position.z - hitBoxWidth };
     hitbox.max = { position.x + hitBoxWidth, position.y + hitBoxHeight, position.z + hitBoxWidth };
 }

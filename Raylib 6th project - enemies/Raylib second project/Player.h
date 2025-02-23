@@ -30,7 +30,8 @@ public:
     bool isMoving;
 
     //Hand 'animation' bools and shot timer (in order of importance, ie top ones overwrite bottom ones, closeToWall 'animation' overwrites all other animations)
-    bool closeToWall;//Brings hands and gun closer on near wall collision
+    bool closeToWallX;//Brings hands and gun closer on near wall collision
+    bool closeToWallZ;//Brings hands and gun closer on near wall collision
     bool aiming;//Aim down sight
     bool shot;//Shoot gun, if aiming down sight, shooting while aiming activates instead using the same bool
     //Timer for 'animations'
@@ -39,11 +40,23 @@ public:
     //Player world position
     int collTestCellX;
     int collTestCellY;
+	Vector3 position = { 10, 0.5f, 10 };
+    //Player hitbox
+    BoundingBox hitbox;
+    float hitBoxWidth = 0.23f;
+    float hitBoxHeight = 0.5f;
+
+    //Function to handle bounding box collision and restrict movement
+    void PreventBoundingBoxCollisions(const std::vector<BoundingBox>& obstacles, BoundingBox& playerBox, Camera& camera, Vector3 oldCamPos);
+    void PreventBoundingBoxCollision(const BoundingBox obstacle, BoundingBox& playerBox, Camera& camera, Vector3 oldCamPos);
+
 
 
 public:
 
     Player();
+
+    void update(Camera camera);
 
     Globals globals;//Giving player access to globals
 

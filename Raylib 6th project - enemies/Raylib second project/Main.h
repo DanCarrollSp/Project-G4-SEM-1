@@ -17,6 +17,8 @@
 void Update();
 void Draw();
 
+void debug();
+
 //Resolution
 const int screenWidth = 1920;
 const int screenHeight = 1080;
@@ -33,6 +35,9 @@ Texture2D doorTexture;
 Color* mapPixels;//Color array for collisions
 
 Texture2D barrelTexture;
+
+//Debugging
+Color crosshairColor;
 
 //Objects
 Globals globals;
