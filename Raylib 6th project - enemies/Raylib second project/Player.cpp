@@ -29,13 +29,20 @@ Player::Player()
 	//Player hitbox
     hitbox.min = { position.x - hitBoxWidth, position.y - hitBoxHeight, position.z - hitBoxWidth };
     hitbox.max = { position.x + hitBoxWidth, position.y + hitBoxHeight, position.z + hitBoxWidth };
-
-
+	//Player animation hitbox
+    animHitbox.min = { position.x - animHitBoxWidth, position.y - animHitBoxHeight, position.z - animHitBoxWidth };
+    animHitbox.max = { position.x + animHitBoxWidth, position.y + animHitBoxHeight, position.z + animHitBoxWidth };
 }
 
 void Player::update(Camera camera)
 {
 	position = camera.position;
+    //Update bounding box for the final position
+    hitbox.min = { camera.position.x - hitBoxWidth, camera.position.y - hitBoxHeight - 0.1f, camera.position.z - hitBoxWidth };
+    hitbox.max = { camera.position.x + hitBoxWidth, camera.position.y + hitBoxHeight - 0.1f,  camera.position.z + hitBoxWidth };
+    //Update bounding box for the final position
+    animHitbox.min = { position.x - animHitBoxWidth, position.y - animHitBoxHeight - 0.1f, position.z - animHitBoxWidth };
+    animHitbox.max = { position.x + animHitBoxWidth, position.y + animHitBoxHeight - 0.1f, position.z + animHitBoxWidth };
 }
 
 void Player::HandleInput()
@@ -64,25 +71,7 @@ void Player::HandleInput()
     aiming = IsMouseButtonDown(MOUSE_BUTTON_RIGHT);
 }
 
-//Wall collision calculation and animation
-bool Player::calcWallCollision(Camera& camera, Color* mapPixels, Vector3 mapPosition, int mapWidth, int mapHeight, Vector3 direction)
-{
-    //Variables to check if player is close enough to a wall collision to enable the upAgainstWall animation
-    Vector3 animTriggerPos = Vector3Add(camera.position, Vector3Scale(direction, 0.4f));//Distance of 0.4 to trigger animation
-    int animTestCellX = animTriggerPos.x - mapPosition.x;
-    int animTestCellY = animTriggerPos.z - mapPosition.z;
 
-    if (animTestCellX >= 0 && animTestCellX < mapWidth && animTestCellY >= 0 && animTestCellY < mapHeight && mapPixels[animTestCellY * mapWidth + animTestCellX].b > 240)
-    {
-        closeToWallX = true;
-    }
-    else
-    {
-        closeToWallX = false;
-    }
-
-    return 1;
-}
 
 Vector3 Player::calcBulletCollision(Camera& camera, BoundingBox boxCollider)
 {
@@ -204,6 +193,7 @@ void Player::PreventBoundingBoxCollisions(const std::vector<BoundingBox>& obstac
 		else closeToWallZ = false;
     }
 
+
 	//Update bounding box for the final position
     playerBox.min = { camera.position.x - hitBoxWidth, camera.position.y - hitBoxHeight - 0.1f, camera.position.z - hitBoxWidth };
     playerBox.max = { camera.position.x + hitBoxWidth, camera.position.y + hitBoxHeight - 0.1f,  camera.position.z + hitBoxWidth };
@@ -260,10 +250,47 @@ void Player::PreventBoundingBoxCollision(const BoundingBox obstacle, BoundingBox
         playerBox.min.z = camera.position.z - hitBoxWidth;
         playerBox.max.z = camera.position.z + hitBoxWidth;
     }
-    
 
 
     //Update bounding box for the final position
     playerBox.min = { camera.position.x - hitBoxWidth, camera.position.y - hitBoxHeight - 0.1f, camera.position.z - hitBoxWidth };
     playerBox.max = { camera.position.x + hitBoxWidth, camera.position.y + hitBoxHeight - 0.1f,  camera.position.z + hitBoxWidth };
+}
+
+
+
+
+//Find better more precise collisions or make this like a direction raycast proximity to wall to update the animation instead of the bounding box
+void Player::closeToBoundingBoxCollisions(const std::vector<BoundingBox>& obstacles, BoundingBox& playerBox, Camera& camera, Vector3 oldCamPos)
+{
+    //Position the camera wants to be after moving
+    Vector3 desiredPos = camera.position;
+    //Calculates how far the camera moved in total
+    Vector3 totalMovement = Vector3Subtract(desiredPos, oldCamPos);
+
+
+    //Checks if this new X position collides with any obstacle
+    for (const auto& box : obstacles)
+    {
+        if (CheckCollisionBoxes(playerBox, box))
+        {
+            closeToWallX = true;
+            break;
+        }
+        else closeToWallX = false;
+    }
+    //Checks if this new Z position collides with any obstacle
+    for (const auto& box : obstacles)
+    {
+        if (CheckCollisionBoxes(playerBox, box))
+        {
+            closeToWallZ = true;
+            break;
+        }
+        else closeToWallZ = false;
+    }
+
+	//Update bounding box for the final position
+    animHitbox.min = { position.x - animHitBoxWidth, position.y - animHitBoxHeight - 0.1f, position.z - animHitBoxWidth };
+    animHitbox.max = { position.x + animHitBoxWidth, position.y + animHitBoxHeight - 0.1f, position.z + animHitBoxWidth };
 }

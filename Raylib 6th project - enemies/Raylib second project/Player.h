@@ -45,11 +45,16 @@ public:
     BoundingBox hitbox;
     float hitBoxWidth = 0.23f;
     float hitBoxHeight = 0.5f;
+    //Player animation hitbox
+    BoundingBox animHitbox;
+    float animHitBoxWidth = 0.30f;
+    float animHitBoxHeight = 0.5f;
 
     //Function to handle bounding box collision and restrict movement
     void PreventBoundingBoxCollisions(const std::vector<BoundingBox>& obstacles, BoundingBox& playerBox, Camera& camera, Vector3 oldCamPos);
     void PreventBoundingBoxCollision(const BoundingBox obstacle, BoundingBox& playerBox, Camera& camera, Vector3 oldCamPos);
-
+    //Function to handle close to wall animation just before movement is restricted
+    void closeToBoundingBoxCollisions(const std::vector<BoundingBox>& obstacles, BoundingBox& playerBox, Camera& camera, Vector3 oldCamPos);
 
 
 public:

@@ -74,7 +74,7 @@ void Update()
 
 
     //Player controls
-    player.calcWallCollision(camera, mapPixels, mapPosition, MAP_WIDTH, MAP_HEIGHT, camera.target);
+	player.closeToBoundingBoxCollisions(world.GetWallBoundingBoxes(), player.animHitbox, camera, oldCamPos);
 	player.update(camera);
     player.HandleInput();
     //Enemy AI ()
@@ -168,6 +168,7 @@ void debug()
     }
 	//Player bounding box
     DrawBoundingBox(player.hitbox, RED);
+    DrawBoundingBox(player.animHitbox, YELLOW);
 
 
     //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
