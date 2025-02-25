@@ -19,8 +19,7 @@ Player::Player()
  
     //Animation bools
     isMoving = false;
-    closeToWallX = false;
-    closeToWallZ = false;
+    closeToWall = false;
     aiming = false;
     shot = false;
     //Animation timers
@@ -29,9 +28,6 @@ Player::Player()
 	//Player hitbox
     hitbox.min = { position.x - hitBoxWidth, position.y - hitBoxHeight, position.z - hitBoxWidth };
     hitbox.max = { position.x + hitBoxWidth, position.y + hitBoxHeight, position.z + hitBoxWidth };
-	//Player animation hitbox
-    animHitbox.min = { position.x - animHitBoxWidth, position.y - animHitBoxHeight, position.z - animHitBoxWidth };
-    animHitbox.max = { position.x + animHitBoxWidth, position.y + animHitBoxHeight, position.z + animHitBoxWidth };
 }
 
 void Player::update(Camera camera)
@@ -40,9 +36,6 @@ void Player::update(Camera camera)
     //Update bounding box for the final position
     hitbox.min = { camera.position.x - hitBoxWidth, camera.position.y - hitBoxHeight - 0.1f, camera.position.z - hitBoxWidth };
     hitbox.max = { camera.position.x + hitBoxWidth, camera.position.y + hitBoxHeight - 0.1f,  camera.position.z + hitBoxWidth };
-    //Update bounding box for the final position
-    animHitbox.min = { position.x - animHitBoxWidth, position.y - animHitBoxHeight - 0.1f, position.z - animHitBoxWidth };
-    animHitbox.max = { position.x + animHitBoxWidth, position.y + animHitBoxHeight - 0.1f, position.z + animHitBoxWidth };
 }
 
 void Player::HandleInput()
@@ -57,7 +50,7 @@ void Player::HandleInput()
 
 
     //Shoot gun if the left mouse btn is pressed and not up against a wall (as the gun is held in the air when up against a wall)
-    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !closeToWallX && !closeToWallZ) shot = true;
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !closeToWall) shot = true;
     //Timer only allows a shot to be done once 0.1 seconds or more has passed since last shot
     if (shot == true) shotTimer += GetFrameTime();
     if (shotTimer >= 0.1f)
@@ -122,7 +115,7 @@ void Player::Animate(int screenWidth, int screenHeight, Camera& camera, Vector3 
     Vector2 handPos = { handPosX, handPosY };//Assign to vector2 for drawing
 
     //Animation assignment
-    if (closeToWallX or closeToWallZ) handTexture = closeToWallTexture;//Close to wall
+    if (closeToWall) handTexture = closeToWallTexture;//Close to wall
     else if (aiming && shot) handTexture = aimingShotTexture;//Aiming and shooting
     else if (aiming) handTexture = aimingTexture;//Just Aiming
     else if (shot) handTexture = shotTexture;//Shooting without aiming
@@ -159,14 +152,12 @@ void Player::PreventBoundingBoxCollisions(const std::vector<BoundingBox>& obstac
         {
             //Collided on X axis  --  revert X movement
             camera.position.x = oldCamPos.x;
-            closeToWallX = true;
 
             //Update bounding box back to old X pos
             playerBox.min.x = camera.position.x - hitBoxWidth;
             playerBox.max.x = camera.position.x + hitBoxWidth;
             break;
         }
-        else closeToWallX = false;
     }
 
     /// /// /// Applies movement along the Z axis /// /// ///
@@ -183,14 +174,12 @@ void Player::PreventBoundingBoxCollisions(const std::vector<BoundingBox>& obstac
         {
             //Collided on Z axis  --  revert Z movement
             camera.position.z = oldCamPos.z;
-            closeToWallZ = true;
 
             //Update bounding box back to old Z pos
             playerBox.min.z = camera.position.z - hitBoxWidth;
             playerBox.max.z = camera.position.z + hitBoxWidth;
             break;
         }
-		else closeToWallZ = false;
     }
 
 
@@ -257,40 +246,27 @@ void Player::PreventBoundingBoxCollision(const BoundingBox obstacle, BoundingBox
     playerBox.max = { camera.position.x + hitBoxWidth, camera.position.y + hitBoxHeight - 0.1f,  camera.position.z + hitBoxWidth };
 }
 
-
-
-
-//Find better more precise collisions or make this like a direction raycast proximity to wall to update the animation instead of the bounding box
-void Player::closeToBoundingBoxCollisions(const std::vector<BoundingBox>& obstacles, BoundingBox& playerBox, Camera& camera, Vector3 oldCamPos)
+void Player::closeToWallCheck(Camera& camera, const std::vector<BoundingBox>& walls)
 {
-    //Position the camera wants to be after moving
-    Vector3 desiredPos = camera.position;
-    //Calculates how far the camera moved in total
-    Vector3 totalMovement = Vector3Subtract(desiredPos, oldCamPos);
+    //Defines the ray starting at the camera position pointing towards camera.target
+    Ray ray;
+    ray.position = camera.position;
+    ray.direction = Vector3Normalize(Vector3Subtract(camera.target, camera.position));
+	float checkDistance = 0.45f;//Distance to check for wall collision
 
+	//Defautl to false
+    closeToWall = false;
 
-    //Checks if this new X position collides with any obstacle
-    for (const auto& box : obstacles)
+    //Checks through each walls bounding box
+    for (const auto& wall : walls)
     {
-        if (CheckCollisionBoxes(playerBox, box))
+        //Check for a ray collision
+        RayCollision collision = GetRayCollisionBox(ray, wall);
+		//Set to true if collision found
+        if (collision.hit && (collision.distance <= checkDistance))
         {
-            closeToWallX = true;
-            break;
+            closeToWall = true;
+			break;//No need to check further so break out of the loop
         }
-        else closeToWallX = false;
     }
-    //Checks if this new Z position collides with any obstacle
-    for (const auto& box : obstacles)
-    {
-        if (CheckCollisionBoxes(playerBox, box))
-        {
-            closeToWallZ = true;
-            break;
-        }
-        else closeToWallZ = false;
-    }
-
-	//Update bounding box for the final position
-    animHitbox.min = { position.x - animHitBoxWidth, position.y - animHitBoxHeight - 0.1f, position.z - animHitBoxWidth };
-    animHitbox.max = { position.x + animHitBoxWidth, position.y + animHitBoxHeight - 0.1f, position.z + animHitBoxWidth };
 }

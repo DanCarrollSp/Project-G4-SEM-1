@@ -30,7 +30,7 @@ public:
     bool isMoving;
 
     //Hand 'animation' bools and shot timer (in order of importance, ie top ones overwrite bottom ones, closeToWall 'animation' overwrites all other animations)
-    bool closeToWallX;//Brings hands and gun closer on near wall collision
+    bool closeToWall;//Brings hands and gun closer on near wall collision
     bool closeToWallZ;//Brings hands and gun closer on near wall collision
     bool aiming;//Aim down sight
     bool shot;//Shoot gun, if aiming down sight, shooting while aiming activates instead using the same bool
@@ -45,16 +45,13 @@ public:
     BoundingBox hitbox;
     float hitBoxWidth = 0.23f;
     float hitBoxHeight = 0.5f;
-    //Player animation hitbox
-    BoundingBox animHitbox;
-    float animHitBoxWidth = 0.30f;
-    float animHitBoxHeight = 0.5f;
+	
 
     //Function to handle bounding box collision and restrict movement
     void PreventBoundingBoxCollisions(const std::vector<BoundingBox>& obstacles, BoundingBox& playerBox, Camera& camera, Vector3 oldCamPos);
     void PreventBoundingBoxCollision(const BoundingBox obstacle, BoundingBox& playerBox, Camera& camera, Vector3 oldCamPos);
     //Function to handle close to wall animation just before movement is restricted
-    void closeToBoundingBoxCollisions(const std::vector<BoundingBox>& obstacles, BoundingBox& playerBox, Camera& camera, Vector3 oldCamPos);
+	void closeToWallCheck(Camera& camera, const std::vector<BoundingBox>& walls);
 
 
 public:
@@ -67,7 +64,6 @@ public:
 
     void HandleInput();//Function handles all player controlls for animations.
     void Animate(int screenWidth, int screenHeight, Camera& camera, Vector3 mapPosition);//Draws the players hand on the screen (function called in main) 
-    bool calcWallCollision(Camera& camera, Color* mapPixels, Vector3 mapPosition, int mapWidth, int mapHeight, Vector3 direction);//Checks wall collision for movement and to enable closeToWall anim
 
 	Vector3 calcBulletCollision(Camera& camera, BoundingBox boxCollider);//Returns position of closest hit bounding box
 

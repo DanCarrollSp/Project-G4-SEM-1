@@ -74,9 +74,9 @@ void Update()
 
 
     //Player controls
-	player.closeToBoundingBoxCollisions(world.GetWallBoundingBoxes(), player.animHitbox, camera, oldCamPos);
 	player.update(camera);
     player.HandleInput();
+	player.closeToWallCheck(camera, world.GetWallBoundingBoxes());
     //Enemy AI ()
     enemy.Update();
 }
@@ -129,6 +129,7 @@ void Draw()
 
     debug();//Debugging visuals ( example - shows box collider outlines and raycasts)
     enemy.Draw(camera);//Draws the enemy, camera for billboarding
+
     
 
     EndMode3D(); //End of 3D rendering
@@ -168,7 +169,6 @@ void debug()
     }
 	//Player bounding box
     DrawBoundingBox(player.hitbox, RED);
-    DrawBoundingBox(player.animHitbox, YELLOW);
 
 
     //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
