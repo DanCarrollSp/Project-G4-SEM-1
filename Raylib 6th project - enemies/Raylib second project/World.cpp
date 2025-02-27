@@ -6,6 +6,10 @@ World::World()
 
 Image World::GenerateProceduralMap(int width, int height)
 {
+    //When called make the naviagtion grid the same size as the passed in map size params
+    mapWidth = width;
+    mapHeight = height;
+
     //CreateS an empty image of width * height, initially fill with color BLACK (empty/walkway)
     map = GenImageColor(width, height, BLACK);
     //Pointer to the pixel data of the image to alter pixels and their color
@@ -64,4 +68,35 @@ Image World::GenerateProceduralMap(int width, int height)
     }
 
     return map;
+}
+
+std::vector<std::vector<bool>> World::CreateNavigationGrid() const
+{
+    //Creates a 2D grid the size of the map
+    std::vector<std::vector<bool>> grid(mapHeight, std::vector<bool>(mapWidth, true));
+
+    //Loop over image pixels to mark blocked vs. walkable
+    //Color Keys:
+    //   WHITE = blocked
+    //   BLUE  = walkable (door)
+    //   BLACK = walkable
+    //   else  = walkable
+    for (int y = 0; y < mapHeight; y++)
+    {
+        for (int x = 0; x < mapWidth; x++)
+        {
+            bool isWalkable = true;//Default to walkable
+
+            //White cells (walls)(blocked)
+            if (pixels[y * mapWidth + x].r == WHITE.r && pixels[y * mapWidth + x].g == WHITE.g && pixels[y * mapWidth + x].b == WHITE.b)
+            {
+                isWalkable = false;
+            }
+
+            //Sets current cell of the nav grid to walkable or blocked
+            grid[y][x] = isWalkable;
+        }
+    }
+
+    return grid;
 }

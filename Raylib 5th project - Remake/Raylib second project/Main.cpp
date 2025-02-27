@@ -135,9 +135,11 @@ void Draw()
 
     globals.DrawTexturedCylinder(barrelTexture, pos3, 0.117, 0.35, WHITE);
 
-    globals.DrawTexturedCylinder(barrelTexture, pos1, 0.117, 0.35, WHITE);
+    
 
     globals.DrawTexturedCylinder(floorTexture, pos2, 0.117, 0.35, WHITE);
+
+    globals.DrawTexturedCylinder(barrelTexture, pos1, 0.117, 0.35, WHITE);
 
     EndMode3D();
 

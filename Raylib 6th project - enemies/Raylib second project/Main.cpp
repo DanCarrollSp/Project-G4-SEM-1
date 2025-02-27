@@ -21,6 +21,9 @@ int main(void)
     Image imMap = world.GenerateProceduralMap(MAP_WIDTH, MAP_HEIGHT);
     miniMap = LoadTextureFromImage(imMap);//Minimap
     
+    //Generate nav gird
+    navGrid = world.CreateNavigationGrid();
+    
     //Texture assignments
     floorTexture = LoadTexture("resources/floorTexture.png");
     ceilingTexture = LoadTexture("resources/ceilingTexture.png");
@@ -79,6 +82,7 @@ void Update()
 	player.closeToWallCheck(camera, world.GetWallBoundingBoxes());
     //Enemy AI ()
     enemy.Update();
+    enemy.Move(player.position, navGrid, GetFrameTime());
 }
 
 

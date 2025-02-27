@@ -143,6 +143,7 @@
     <ClCompile Include="Enemy.cpp" />
     <ClCompile Include="Globals.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="Pathfinding.cpp" />
     <ClCompile Include="Player.cpp" />
     <ClCompile Include="World.cpp" />
   </ItemGroup>
@@ -150,6 +151,7 @@
     <ClInclude Include="Enemy.h" />
     <ClInclude Include="Globals.h" />
     <ClInclude Include="Main.h" />
+    <ClInclude Include="Pathfinding.h" />
     <ClInclude Include="Player.h" />
     <ClInclude Include="World.h" />
   </ItemGroup>

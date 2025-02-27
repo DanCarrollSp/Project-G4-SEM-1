@@ -27,6 +27,8 @@ const int screenHeight = 1080;
 Camera camera = { 0 };//Game camera
 Vector3 mapPosition;//Maps world position
 Texture2D miniMap;//Minimap cubicmap
+//
+std::vector<std::vector<bool>> navGrid;//Grid for path finding
 
 Texture2D floorTexture;
 Texture2D ceilingTexture;

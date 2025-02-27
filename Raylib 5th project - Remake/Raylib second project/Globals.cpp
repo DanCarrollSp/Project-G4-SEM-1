@@ -1,4 +1,5 @@
 #include "Globals.h"
+#include <raymath.h>
 
 Globals::Globals()
 {
@@ -72,13 +73,36 @@ void Globals::DrawCubeTexture(Texture2D texture, Vector3 position, float width, 
 
 void Globals::DrawTexturedCylinder(Texture2D texture, Vector3 position, float radius, float height, Color color)
 {
-    cylinderMesh = GenMeshCylinder(radius, height, 30);
-    cylinderModel = LoadModelFromMesh(cylinderMesh);
+    //Vector3 rotationAxis = { 110.5,110.5,110.5 };
+    float textureRotation = 45;
 
-    //Apply the texture to the model
+    // Generate the cylinder mesh
+    Mesh cylinderMesh = GenMeshCylinder(radius, height, 30);
+
+    // Modify the UV mapping to rotate the texture
+    for (int i = 0; i < cylinderMesh.vertexCount; i++)
+    {
+        float u = cylinderMesh.texcoords[i * 2];      // U coordinate
+        float v = cylinderMesh.texcoords[i * 2 + 1]; // V coordinate
+
+        // Rotate the UV coordinates
+        float rotatedU = u * cos(textureRotation) - v * sin(textureRotation);
+        float rotatedV = u * sin(textureRotation) + v * cos(textureRotation);
+
+        // Update the UV coordinates in the mesh
+        cylinderMesh.texcoords[i * 2] = rotatedU;
+        cylinderMesh.texcoords[i * 2 + 1] = rotatedV;
+    }
+
+    // Create a model from the modified mesh
+    Model cylinderModel = LoadModelFromMesh(cylinderMesh);
+
+    // Apply the texture to the model
     cylinderModel.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = texture;
 
-    //Draw the textured cylinder
+    // Draw the textured cylinder
     DrawModel(cylinderModel, position, 1.0f, color);
-    UnloadModel(cylinderModel);
+
+    // Unload resources
+    UnloadModel(cylinderModel);  // Frees the model and associated mesh
 }
