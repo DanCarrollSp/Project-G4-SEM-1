@@ -27,3 +27,5 @@ struct Node
 //Computes the A* path (without diagonals) and returns a list of waypoints.
 //The returned path is in world coordinates (cells centers).
 std::vector<Vector3> AStarPath(Vector3 startPos, Vector3 goalPos,const std::vector<std::vector<bool>>& grid);
+//
+std::vector<Vector3> SmoothPath(const std::vector<Vector3>& path, const std::vector<std::vector<bool>>& grid);

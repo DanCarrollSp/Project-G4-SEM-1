@@ -15,19 +15,22 @@ public:
     void Draw(Camera camera);
 
 	//Collision detection
-    Vector3 collision(Ray ray);
+	Vector3 collision(Ray ray);//Returns collision point if a ray hits the enemy (used for bullets)
+	void vectorCollision(const std::vector<BoundingBox>& walls);//Gives enemy phycial collisions with walls
     BoundingBox hitbox;
     BoundingBox GetBoundingBox() const { return hitbox; }
 
     //Movement and path finding
-    void Move(Vector3 target, const std::vector<std::vector<bool>>& navGrid, float deltaTime);
+    void Move(Vector3 target, const std::vector<std::vector<bool>>& navGrid, const std::vector<BoundingBox>& walls, float deltaTime);
     void RecalculatePath(Vector3 target, const std::vector<std::vector<bool>>& navGrid);
     //Path data
-    std::vector<Vector3> currentPath;//The calculated path to target
+    std::vector<Vector3> gridPath;//The calculated path to target
+	std::vector<Vector3> smoothPath;//The smoothed path to target
     int currentPathIndex;//Part of the path its currently on
-    //time (for intermediatly updating path (recalcing))
-    float timeSinceLastPathRecalc;
+	float timeSinceLastPathRecalc;//Timer to wait before trying to find a new path again
     Vector3 lastTargetPosition;//Position to move to
+
+    
 
 private:
 

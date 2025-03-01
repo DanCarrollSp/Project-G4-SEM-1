@@ -82,7 +82,7 @@ void Update()
 	player.closeToWallCheck(camera, world.GetWallBoundingBoxes());
     //Enemy AI ()
     enemy.Update();
-    enemy.Move(player.position, navGrid, GetFrameTime());
+    enemy.Move(player.position, navGrid, world.GetWallBoundingBoxes(), GetFrameTime());
 }
 
 

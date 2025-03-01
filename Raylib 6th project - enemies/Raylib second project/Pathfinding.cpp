@@ -172,3 +172,67 @@ std::vector<Vector3> AStarPath(Vector3 startPos, Vector3 goalPos, const std::vec
     cleanup();
     return {};
 }
+
+
+
+
+
+
+//-----------------------------------------------------------------------------
+// Path Smoothing Functions (Line-of-Sight "String Pulling")
+//-----------------------------------------------------------------------------
+
+// Checks if a straight line from start to end is collision-free using Bresenham's algorithm.
+bool LineOfSight(const Vector3& start, const Vector3& end, const std::vector<std::vector<bool>>& grid) {
+    int x0 = (int)floorf(start.x);
+    int y0 = (int)floorf(start.z);
+    int x1 = (int)floorf(end.x);
+    int y1 = (int)floorf(end.z);
+
+    int dx = abs(x1 - x0);
+    int dy = abs(y1 - y0);
+    int sx = (x0 < x1) ? 1 : -1;
+    int sy = (y0 < y1) ? 1 : -1;
+    int err = dx - dy;
+
+    while (true) {
+        if (!grid[y0][x0])
+            return false;
+        if (x0 == x1 && y0 == y1)
+            break;
+        int e2 = 2 * err;
+        if (e2 > -dy) {
+            err -= dy;
+            x0 += sx;
+        }
+        if (e2 < dx) {
+            err += dx;
+            y0 += sy;
+        }
+    }
+    return true;
+}
+
+// Smooths the computed path by removing unnecessary intermediate waypoints.
+std::vector<Vector3> SmoothPath(const std::vector<Vector3>& path, const std::vector<std::vector<bool>>& grid) {
+    if (path.empty())
+        return path;
+
+    std::vector<Vector3> newPath;
+    newPath.push_back(path.front());
+
+    int currentIndex = 0;
+    while (currentIndex < (int)path.size() - 1) {
+        int nextIndex = (int)path.size() - 1;
+        // Look for the farthest point reachable in a straight line.
+        for (int i = (int)path.size() - 1; i > currentIndex; i--) {
+            if (LineOfSight(path[currentIndex], path[i], grid)) {
+                nextIndex = i;
+                break;
+            }
+        }
+        newPath.push_back(path[nextIndex]);
+        currentIndex = nextIndex;
+    }
+    return newPath;
+}
