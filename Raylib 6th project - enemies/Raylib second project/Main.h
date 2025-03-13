@@ -12,6 +12,8 @@
 #include "World.h"
 #include "Enemy.h"
 
+#include "ParticleSystem.h"
+
 
 //Functions
 void Update();
@@ -46,3 +48,4 @@ Globals globals;
 Player player;
 World world;
 Enemy enemy;
+ParticleSystem particleSystem;

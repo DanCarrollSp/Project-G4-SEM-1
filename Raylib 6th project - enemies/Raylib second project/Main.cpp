@@ -1,5 +1,7 @@
 #include "Main.h"
 
+Vector3 enemyCollision;
+
 int main(void)
 {
     //Creates the fullscreen window
@@ -52,6 +54,24 @@ int main(void)
     {
         //Updates
         Update();
+
+
+		ParticleParams bloodParams;
+		bloodParams.position = enemyCollision;
+        bloodParams.spawnCount = 25;
+        bloodParams.minSpeed = 0.50f;
+        bloodParams.maxSpeed = 1.00f;
+        bloodParams.startColor = RED;
+        bloodParams.endColor = MAROON;
+        bloodParams.minLifetime = 0.5f;
+        bloodParams.maxLifetime = 1.0f;
+        bloodParams.gravity = { 0.25f, -0.25f, 0.25 };
+        bloodParams.startSize = 0.01f;
+        bloodParams.endSize = 0.01f;
+
+        particleSystem.Instantiate(bloodParams);
+        particleSystem.UpdateAll(GetFrameTime());
+
 
         //Draws game
         Draw();
@@ -132,7 +152,9 @@ void Draw()
 	/// Draw entites ///
 
     debug();//Debugging visuals ( example - shows box collider outlines and raycasts)
+    particleSystem.DrawAll(camera);
     enemy.Draw(camera);//Draws the enemy, camera for billboarding
+    
 
     
 
@@ -202,7 +224,7 @@ void debug()
     DrawSphere(rayLinePoint, 0.0002f, crosshairColor);
 
     //Draws a BLUE sphere on enemy hitboxes and makes the crosshair red while aiming at enemies
-	Vector3 enemyCollision = player.calcBulletCollision(camera, enemy.hitbox);//returns 0,0,0 if no collision, otherwise returns the collision point
+	enemyCollision = player.calcBulletCollision(camera, enemy.hitbox);//returns 0,0,0 if no collision, otherwise returns the collision point
     if (enemyCollision != Vector3{ 0, 0, 0 })
     {
         DrawSphere(enemyCollision, 0.1f, BLUE);
