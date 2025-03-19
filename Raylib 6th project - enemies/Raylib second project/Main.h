@@ -39,6 +39,7 @@ Texture2D doorTexture;
 Color* mapPixels;//Color array for collisions
 
 Texture2D barrelTexture;
+Texture bloodTexture;
 
 //Debugging
 Color crosshairColor;

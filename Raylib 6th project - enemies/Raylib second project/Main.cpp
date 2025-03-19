@@ -1,6 +1,11 @@
 #include "Main.h"
 
 Vector3 enemyCollision;
+bool isPaused = false;
+
+bool debbuging = false;
+
+bool enemyUpdate = false;
 
 int main(void)
 {
@@ -34,6 +39,7 @@ int main(void)
     //
     barrelTexture = LoadTexture("resources/barrel.png");
     //
+    bloodTexture = LoadTexture("resources/blood.png");
 
     //Map creation using walls, doors, etc
     mapPixels = LoadImageColors(imMap);//Color map, converts 'image' pixel color data into map data for collisions (black = passavble, else = not passable)
@@ -52,13 +58,30 @@ int main(void)
 
     while (!WindowShouldClose())
     {
+
+        if (IsKeyPressed(KEY_SPACE))
+        {
+            isPaused = !isPaused;
+        }
+
+        if (IsKeyPressed(KEY_F1))
+        {
+            debbuging = !debbuging;
+        }
+
+        if (IsKeyPressed(KEY_F2))
+        {
+            enemyUpdate = !enemyUpdate;
+        }
+
+        
         //Updates
-        Update();
+        if (!isPaused) Update();
 
 
 		ParticleParams bloodParams;
 		bloodParams.position = enemyCollision;
-        bloodParams.spawnCount = 25;
+        bloodParams.spawnCount = 9;
         bloodParams.minSpeed = 0.50f;
         bloodParams.maxSpeed = 1.00f;
         bloodParams.startColor = RED;
@@ -66,11 +89,13 @@ int main(void)
         bloodParams.minLifetime = 0.5f;
         bloodParams.maxLifetime = 1.0f;
         bloodParams.gravity = { 0.25f, -0.25f, 0.25 };
-        bloodParams.startSize = 0.01f;
-        bloodParams.endSize = 0.01f;
+        bloodParams.startSize = 0.4f;
+        bloodParams.endSize = 0.4f;
+
+        bloodParams.texture = &bloodTexture;
 
         particleSystem.Instantiate(bloodParams);
-        particleSystem.UpdateAll(GetFrameTime());
+        if (!isPaused) particleSystem.UpdateAll(GetFrameTime());
 
 
         //Draws game
@@ -102,7 +127,7 @@ void Update()
 	player.closeToWallCheck(camera, world.GetWallBoundingBoxes());
     //Enemy AI ()
     enemy.Update();
-    enemy.Move(player.position, navGrid, world.GetWallBoundingBoxes(), GetFrameTime());
+    if (enemyUpdate) enemy.Move(player.position, navGrid, world.GetWallBoundingBoxes(), GetFrameTime());
 }
 
 
@@ -152,9 +177,9 @@ void Draw()
 	/// Draw entites ///
 
     debug();//Debugging visuals ( example - shows box collider outlines and raycasts)
-    particleSystem.DrawAll(camera);
-    enemy.Draw(camera);//Draws the enemy, camera for billboarding
     
+    enemy.Draw(camera);//Draws the enemy, camera for billboarding
+    particleSystem.DrawAll(camera);
 
     
 
@@ -180,20 +205,22 @@ void Draw()
 
 void debug()
 {
-    //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    ///  Bounding Boxes
+    if (debbuging)
+    {
+        //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        ///  Bounding Boxes
 
-	//Wall bounding boxes
+        //Wall bounding boxes
     {
         std::vector<BoundingBox> boundingBoxes = world.GetWallBoundingBoxes();
         for (const auto& box : boundingBoxes) DrawBoundingBox(box, RED); // Draw bounding box in red
     }
-	//Door bounding boxes
+    //Door bounding boxes
     {
         std::vector<BoundingBox> boundingBoxes = world.GetDoorBoundingBoxes();
         for (const auto& box : boundingBoxes) DrawBoundingBox(box, GREEN); // Draw bounding box in red
     }
-	//Player bounding box
+    //Player bounding box
     DrawBoundingBox(player.hitbox, RED);
 
 
@@ -213,10 +240,10 @@ void debug()
         if (doorCollision != Vector3{ 0, 0, 0 }) DrawSphere(doorCollision, 0.1f, GREEN);
     }
 
-    
+
     //Draws a RED sphere on a shot walls (drawn over by blue hit detection for now)
     if (player.hitTarget && player.shot) DrawSphere(player.hitPoint, 0.1f, RED);
-
+}
 
 	//Draws a circle crosshair on the first piece of a raycasted line to represent the crosshair
     Vector3 rayDirection = Vector3Normalize(Vector3Subtract(camera.target, camera.position));

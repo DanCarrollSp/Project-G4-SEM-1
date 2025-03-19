@@ -99,11 +99,13 @@ void ParticleEffect::Draw(Camera3D camera)
             float scale = size / (float)params.texture->width;
 
 
-            DrawTexturePro(*params.texture, source,
+            /*DrawTexturePro(*params.texture, source,
 
                 Rectangle{ p.position.x, p.position.y, (float)params.texture->width * scale, (float)params.texture->height * scale},
 
-                origin, 0.0f, p.color );
+                origin, 0.0f, p.color );*/
+
+            DrawBillboard(camera, *params.texture, p.position, size, p.color);
         }
         else
         {
