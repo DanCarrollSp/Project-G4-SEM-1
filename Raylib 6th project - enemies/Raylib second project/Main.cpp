@@ -82,15 +82,15 @@ int main(void)
 		ParticleParams bloodParams;
 		bloodParams.position = enemyCollision;
         bloodParams.spawnCount = 9;
-        bloodParams.minSpeed = 0.50f;
-        bloodParams.maxSpeed = 1.00f;
+        bloodParams.minSpeed = 0.30f;
+        bloodParams.maxSpeed = 0.70f;
         bloodParams.startColor = RED;
         bloodParams.endColor = MAROON;
         bloodParams.minLifetime = 0.5f;
-        bloodParams.maxLifetime = 1.0f;
-        bloodParams.gravity = { 0.25f, -0.25f, 0.25 };
-        bloodParams.startSize = 0.4f;
-        bloodParams.endSize = 0.4f;
+        bloodParams.maxLifetime = 0.80f;
+        bloodParams.gravity = { 0.1f, -0.1f, 0.1 };
+        bloodParams.startSize = 0.1f;
+        bloodParams.endSize = 0.3f;
 
         bloodParams.texture = &bloodTexture;
 
@@ -178,9 +178,9 @@ void Draw()
 
     debug();//Debugging visuals ( example - shows box collider outlines and raycasts)
     
-    
-    particleSystem.DrawAll(camera);
     enemy.Draw(camera);//Draws the enemy, camera for billboarding
+    particleSystem.DrawAll(camera);
+    
     
 
     EndMode3D(); //End of 3D rendering
