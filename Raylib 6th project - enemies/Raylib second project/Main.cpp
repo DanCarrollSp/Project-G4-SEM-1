@@ -178,9 +178,9 @@ void Draw()
 
     debug();//Debugging visuals ( example - shows box collider outlines and raycasts)
     
-    enemy.Draw(camera);//Draws the enemy, camera for billboarding
+    
     particleSystem.DrawAll(camera);
-
+    enemy.Draw(camera);//Draws the enemy, camera for billboarding
     
 
     EndMode3D(); //End of 3D rendering
