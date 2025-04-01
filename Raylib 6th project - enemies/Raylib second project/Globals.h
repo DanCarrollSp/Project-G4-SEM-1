@@ -14,10 +14,11 @@ public:
 
     Globals();
 
+
+    //Draw textured cubes
     //Source: https://www.raylib.com/examples/models/loader.html?name=models_draw_cube_texture
     void DrawCubeTexture(Texture2D texture, Vector3 position, float width, float height, float length, Color color);
     
-
     //Draw textured cylinders
     void DrawTexturedCylinder(Texture2D texture, Vector3 position, float radius, float height, Color color);
     Mesh cylinderMesh;

@@ -9,7 +9,8 @@ Particle::Particle(
     const Color& col,
     float life,
     float sSize,
-    float eSize) :
+    float eSize,
+    float rot) :
 
     position(pos),
     velocity(vel),
@@ -18,6 +19,7 @@ Particle::Particle(
     age(0.0f),//Start new particle at age 0
     startSize(sSize),
     endSize(eSize),
+    rotation(rot),
     active(true)//Particle starts active
 {};
 
@@ -98,14 +100,11 @@ void ParticleEffect::Draw(Camera3D camera)
             Vector2 origin = { (float)params.texture->width * 0.5f, (float)params.texture->height * 0.5f };
             float scale = size / (float)params.texture->width;
 
+            DrawBillboardPro(camera, *params.texture, source, p.position, Vector3{0,1,0}, Vector2{ 1, size }, origin, p.rotation, p.color);
+            //DrawBillboard(camera, *params.texture, p.position, size, p.color);
+			//DrawBillboardRec(camera, *params.texture, source, p.position, Vector2{ size, size }, p.color);
+            //DrawBillboardPro(camera, bill, source, billPositionRotating, billUp, size, origin, rotation, WHITE);
 
-            /*DrawTexturePro(*params.texture, source,
-
-                Rectangle{ p.position.x, p.position.y, (float)params.texture->width * scale, (float)params.texture->height * scale},
-
-                origin, 0.0f, p.color );*/
-
-            DrawBillboard(camera, *params.texture, p.position, size, p.color);
         }
         else
         {
@@ -156,9 +155,14 @@ void ParticleEffect::SpawnParticles(int count)
 
         //Assigns a random lifespan
         float life = GetRandomFloat(params.minLifetime, params.maxLifetime);
-
+		//Assigns a random rotation
+        float randomRotation = 0.0f;
+        if (params.enableRandomRotation)
+        {
+            randomRotation = GetRandomFloat(0.0f, 360.0f);
+        }
         //Creates and stores this new particle
-        Particle p(params.position, vel, params.startColor, life, params.startSize, params.endSize);
+        Particle p(params.position, vel, params.startColor, life, params.startSize, params.endSize, params.enableRandomRotation);
         particles.push_back(p);
     }
 }

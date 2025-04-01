@@ -22,10 +22,16 @@ struct ParticleParams
     Color   endColor = DARKGRAY;             //Final color of the particle
     float   startSize = 8.0f;                //Initial size of the particle
     float   endSize = 2.0f;                  //Final size of the particle
+	bool enableRandomRotation = false;	     //Random rotation of the particle
 	bool    isContinuous = false;            //Continuously spawns particles if true or a burst if false
     float   emissionRate = 10.0f;            //Number of particles emitted per second (if continuous)
     Texture2D* texture = nullptr;            //Pointer to an OPTIONAL texture for the particles
     bool    fadeAlpha = true;                //Whether the particles alpha should fade over time
+
+	//Ejection params
+    bool    isEject = false; ;                     // Use eject behavior
+    Vector3 ejectDirection = { 0.0f, 1.0f, 0.0f }; // Base direction for ejection (e.g., upward)
+    float   ejectAngleSpread = 30.0f;              // Cone spread in degrees
 };
 
 
@@ -40,10 +46,11 @@ struct Particle
     float   age;        //Current age of the particle (time alive)
     float   startSize;  //Initial size
     float   endSize;    //Final size
+	float   rotation;   //Current rotation
     bool    active;     //If its currently active
 
     //Constructor to initialize this individual particle
-    Particle(const Vector3& pos, const Vector3& vel, const Color& col, float life, float sSize, float eSize);
+    Particle(const Vector3& pos, const Vector3& vel, const Color& col, float life, float sSize, float eSize, float rot);
 };
 
 

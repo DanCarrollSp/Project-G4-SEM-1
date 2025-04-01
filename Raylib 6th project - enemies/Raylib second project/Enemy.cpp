@@ -20,6 +20,8 @@ Enemy::Enemy()
     hitbox.max = { position.x + hitBoxWidth, position.y + hitBoxHeight, position.z + hitBoxWidth };
 
     timeSinceLastPathRecalc = 0.0f;
+
+    for (int i = 0; i++; i > 4) SetTextureFilter(walkTextures[i], TEXTURE_FILTER_BILINEAR);
 }
 
 Enemy::~Enemy() 
@@ -42,8 +44,10 @@ void Enemy::Update()
 void Enemy::Draw(Camera camera)
 {
     DrawBillboard(camera, currentTexture, position, 1.0f, WHITE);
-    DrawBoundingBox(hitbox, RED);
+    if (!debug) DrawBoundingBox(hitbox, RED);
 }
+
+
 
 void Enemy::animate()
 {

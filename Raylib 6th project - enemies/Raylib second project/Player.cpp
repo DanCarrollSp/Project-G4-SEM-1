@@ -99,7 +99,7 @@ void Player::Animate(int screenWidth, int screenHeight, Camera& camera, Vector3 
         aimingShotTexture = LoadTexture("resources/AimingShot.png");//Aiming and shooting
         aimingTexture = LoadTexture("resources/Aiming.png");//Just Aiming
         shotTexture = LoadTexture("resources/Shot.png");//Shooting without aiming
-        idleHandTexture = LoadTexture("resources/Hand.png");//Idle hand
+        idleHandTexture = LoadTexture("resources/hand.png");//Idle hand
         //default/idleTexture assignment
         handTexture = idleHandTexture;
 

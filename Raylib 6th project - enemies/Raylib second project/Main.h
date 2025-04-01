@@ -8,6 +8,7 @@
 
 //Local Libs
 #include "Globals.h"
+#include "Scenes.h"
 #include "Player.h"
 #include "World.h"
 #include "Enemy.h"
@@ -19,6 +20,7 @@
 void Update();
 void Draw();
 
+void debugControls();
 void debug();
 
 //Resolution
@@ -36,16 +38,24 @@ Texture2D floorTexture;
 Texture2D ceilingTexture;
 Texture2D wallTexture;
 Texture2D doorTexture;
+Texture2D bloodTexture;
 Color* mapPixels;//Color array for collisions
 
 Texture2D barrelTexture;
-Texture bloodTexture;
 
+//Disable mouse once
+bool mouseDisabled = false;
 //Debugging
 Color crosshairColor;
+bool paused = false;
+bool debugMode = false;
+bool stopParticles = true;
+bool stopEnemy = false;
+bool enemyMove = true;
 
 //Objects
 Globals globals;
+Scenes scenes;
 Player player;
 World world;
 Enemy enemy;

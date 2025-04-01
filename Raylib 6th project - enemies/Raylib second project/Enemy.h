@@ -31,14 +31,18 @@ public:
     Vector3 lastTargetPosition;//Position to move to
 
     
+    //Get functions
+	Vector3 GetPosition() const { return position; }
+    bool debug = false;
 
 private:
 
+	//Animation of enemy movements
     void animate();
 
     //Position and movement
-    Vector3 position;
     float speed;
+    Vector3 position;
     //Hitbox
 	float hitBoxWidth = 0.23f;
     float hitBoxHeight = 0.5f;
