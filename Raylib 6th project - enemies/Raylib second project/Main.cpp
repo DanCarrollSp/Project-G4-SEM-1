@@ -44,7 +44,7 @@ int main(void)
     //Map creation using walls, doors, etc
     mapPixels = LoadImageColors(imMap);//Color map, converts 'image' pixel color data into map data for collisions (black = passavble, else = not passable)
 
-
+    alphaShader = LoadShader(NULL, "shaders/alpha.fs");
 
 
 
@@ -150,7 +150,7 @@ void Draw()
     ClearBackground(BLACK);//Clears screen
     //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     BeginMode3D(camera);//Start of 3D Rendering
-    BeginBlendMode(BLEND_ALPHA);
+    //BeginBlendMode(BLEND_ALPHA);
 
 	//World drawing (walls, doors, floor, ceiling)
     for (int y = 0; y < MAP_HEIGHT; y++)
@@ -188,25 +188,13 @@ void Draw()
 
 
 	/// Draw entites /////>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
+    BeginShaderMode(alphaShader);
     debug();//Debugging visuals ( example - shows box collider outlines and raycasts)
     
-
-    
     if(!stopEnemy)enemy.Draw(camera);//Draws the enemy, camera for billboarding
+	particleSystem.DrawAll(camera);//Draws all active particle effects
 
-    EndMode3D();//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-
-    // 2) Draw alpha particles, depth writes OFF, depth test ON, sorted from back to front
-    BeginMode3D(camera);//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-	rlDisableDepthMask();//Disable depth mask to draw particles without culling
-    BeginBlendMode(BLEND_MULTIPLIED);
-    particleSystem.DrawAll(camera);
-	EndBlendMode();//End of multiply blending mode (reverts to aplha blending(default))
-	rlEnableDepthMask();//Enable depth mask to turn back on culling
-
+    EndShaderMode();
     EndMode3D();
 	//Start of drawing//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 

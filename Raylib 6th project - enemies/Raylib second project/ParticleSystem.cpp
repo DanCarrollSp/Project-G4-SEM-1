@@ -96,15 +96,12 @@ void ParticleEffect::Draw(Camera3D camera)
         //Draws a textured particle (if texture provided else draw a colored circle)
         if (params.texture && params.texture->id != 0)
         {
-            Rectangle source = { 0, 0, (float)params.texture->width, (float)params.texture->height };
-            Vector2 origin = { (float)params.texture->width * 0.5f, (float)params.texture->height * 0.5f };
-            float scale = size / (float)params.texture->width;
+            Rectangle source = { 0.0f, 0.0f, (float)params.texture->width, (float)params.texture->height };
+            Vector3 up = { 0.0f, 1.0f, 0.0f };
+            Vector2 sizeVec = { size, size };
+            Vector2 origin = {sizeVec.x / 2, sizeVec.y / 2};
 
-            DrawBillboardPro(camera, *params.texture, source, p.position, Vector3{0,1,0}, Vector2{ 1, size }, origin, p.rotation, p.color);
-            //DrawBillboard(camera, *params.texture, p.position, size, p.color);
-			//DrawBillboardRec(camera, *params.texture, source, p.position, Vector2{ size, size }, p.color);
-            //DrawBillboardPro(camera, bill, source, billPositionRotating, billUp, size, origin, rotation, WHITE);
-
+            DrawBillboardPro(camera, *params.texture, source, p.position, up, sizeVec, origin, p.rotation, WHITE);
         }
         else
         {
@@ -163,6 +160,7 @@ void ParticleEffect::SpawnParticles(int count)
         }
         //Creates and stores this new particle
         Particle p(params.position, vel, params.startColor, life, params.startSize, params.endSize, params.enableRandomRotation);
+		p.rotation = randomRotation;
         particles.push_back(p);
     }
 }

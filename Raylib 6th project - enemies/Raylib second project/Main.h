@@ -26,6 +26,8 @@ void debug();
 //Resolution
 const int screenWidth = 1920;
 const int screenHeight = 1080;
+//Shaders
+Shader alphaShader;
 
 //Game Setup
 Camera camera = { 0 };//Game camera
