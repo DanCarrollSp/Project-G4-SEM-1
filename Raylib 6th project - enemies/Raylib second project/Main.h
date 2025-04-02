@@ -20,8 +20,11 @@
 void Update();
 void Draw();
 
+void particles();
+
 void debugControls();
 void debug();
+
 
 //Resolution
 const int screenWidth = 1920;
@@ -44,6 +47,10 @@ Texture2D bloodTexture;
 Color* mapPixels;//Color array for collisions
 
 Texture2D barrelTexture;
+
+//Particles
+float particleSize;
+ParticleParams bloodParams;
 
 //Disable mouse once
 bool mouseDisabled = false;

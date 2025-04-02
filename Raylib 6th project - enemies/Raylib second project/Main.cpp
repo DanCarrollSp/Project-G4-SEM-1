@@ -44,7 +44,12 @@ int main(void)
     //Map creation using walls, doors, etc
     mapPixels = LoadImageColors(imMap);//Color map, converts 'image' pixel color data into map data for collisions (black = passavble, else = not passable)
 
+    //Shaders
     alphaShader = LoadShader(NULL, "shaders/alpha.fs");
+	//Particle setup
+	particles();
+
+    InitAudioDevice();
 
 
 
@@ -57,58 +62,32 @@ int main(void)
     while (!WindowShouldClose())
     {
 
-        //Show menus before gameplay
+		//Main menu >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         if (scenes.sceneMainMenu)
         {
             scenes.Update();
             scenes.Draw(camera);
         }
 
+		//Gameplay >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         if (scenes.sceneGameplay)
         {
-            //Disables the cursor to lock the mouse to the screen
+            //Disables the cursor to lock the mouse to the screen (once)
             if (mouseDisabled == false)
             {
                 DisableCursor();
                 mouseDisabled = true;
             }
+
+
+			//Allows debug controls while paused (including the ability to pause and unpause)
             debugControls();
 
             if (!paused)
             {
                 //Updates
                 Update();
-
-
-                ParticleParams bloodParams;
-                bloodParams.position = enemyCollision;
-                bloodParams.spawnCount = 1;
-                bloodParams.minSpeed = 0.5f;
-                bloodParams.maxSpeed = 1.0f;
-                bloodParams.startColor = MAROON;
-                bloodParams.endColor = MAROON;
-                bloodParams.minLifetime = 2.0f;
-                bloodParams.maxLifetime = 2.0f;
-                bloodParams.gravity = { 0.0f, -3.5f, 0.0 };
-                bloodParams.startSize = 0.2f;
-                bloodParams.endSize = 0.2f;
-                bloodParams.maxAngle = 180.0f;
-                bloodParams.fadeAlpha = true;
-                bloodParams.enableRandomRotation = true;
-
-                //bloodParams.isEject = true;
-
-
-                bloodParams.texture = &bloodTexture;  // Load this texture elsewhere
-                if (bloodParams.texture->id == 0)
-                {
-                    printf("Error: Blood texture not loaded properly!\n");
-                }
-
-                if (crosshairColor.r == RED.r && player.shot) particleSystem.Instantiate(bloodParams);
-                particleSystem.UpdateAll(GetFrameTime());
             }
-
             //Draws game
             Draw();
         }
@@ -137,9 +116,16 @@ void Update()
     player.update(camera);
     player.HandleInput();
     player.closeToWallCheck(camera, world.GetWallBoundingBoxes());
+    if (crosshairColor.r == RED.r && player.justFired)
+    {
+        particles();
+        particleSystem.Instantiate(bloodParams);//Shooting
+    }
     //Enemy AI ()
     if (!stopEnemy)enemy.Update();
     if (!enemyMove)enemy.Move(player.position, navGrid, world.GetWallBoundingBoxes(), GetFrameTime());
+	//Particles
+    particleSystem.UpdateAll(GetFrameTime());
 
 }
 
@@ -212,6 +198,34 @@ void Draw()
     
     //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	EndDrawing(); //End of drawing
+}
+
+
+
+void particles()
+{
+	if (player.pistolEquipped) particleSize = 0.1f;
+	else if (player.akEquipped) particleSize = 0.225f;
+	else if (player.shotgunEquipped) particleSize = 0.4f;
+	else if (player.smgEquipped) particleSize = 0.15f;
+
+	//Blood particle effect
+    bloodParams.position = enemyCollision;
+    bloodParams.spawnCount = 1;
+    bloodParams.minSpeed = 0.5f;
+    bloodParams.maxSpeed = 1.0f;
+    bloodParams.startColor = MAROON;
+    bloodParams.endColor = MAROON;
+    bloodParams.minLifetime = 2.0f;
+    bloodParams.maxLifetime = 2.0f;
+    bloodParams.gravity = { 0.0f, -3.5f, 0.0 };
+    bloodParams.startSize = particleSize;
+    bloodParams.endSize = particleSize;
+    bloodParams.maxAngle = 180.0f;
+    bloodParams.fadeAlpha = true;
+    bloodParams.enableRandomRotation = true;
+
+    bloodParams.texture = &bloodTexture;
 }
 
 

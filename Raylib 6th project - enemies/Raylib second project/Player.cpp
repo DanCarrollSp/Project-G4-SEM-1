@@ -32,10 +32,18 @@ Player::Player()
 
 void Player::update(Camera camera)
 {
+	setFireRate();
+
 	position = camera.position;
     //Update bounding box for the final position
     hitbox.min = { camera.position.x - hitBoxWidth, camera.position.y - hitBoxHeight - 0.1f, camera.position.z - hitBoxWidth };
     hitbox.max = { camera.position.x + hitBoxWidth, camera.position.y + hitBoxHeight - 0.1f,  camera.position.z + hitBoxWidth };
+
+    //change guns
+	if (IsKeyPressed(KEY_ONE)) unequipAll(), pistolEquipped = true;
+	if (IsKeyPressed(KEY_TWO)) unequipAll(), akEquipped = true;
+	if (IsKeyPressed(KEY_THREE)) unequipAll(), shotgunEquipped = true;
+	if (IsKeyPressed(KEY_FOUR)) unequipAll(), smgEquipped = true;
 }
 
 void Player::HandleInput()
@@ -49,19 +57,22 @@ void Player::HandleInput()
     else bobbingTime = 0.0f;
 
 
-    //Shoot gun if the left mouse btn is pressed and not up against a wall (as the gun is held in the air when up against a wall)
-    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !closeToWall) shot = true;
-    //Timer only allows a shot to be done once 0.1 seconds or more has passed since last shot
-    if (shot == true) shotTimer += GetFrameTime();
-    if (shotTimer >= 0.1f)
+	//If the player has just fired, set the justFired bool to true
+    justFired = false;
+
+    //Increases the shot cooldown timer every frame
+    shotTimer += GetFrameTime();
+    //Fires if cooldown has passed and button is down
+    if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && shotTimer >= currentFireRate)
     {
-        shot = false;
-        shotTimer = 0;
+        justFired = true;
+        playSound();
+        shotTimer = 0.0f;
     }
 
 
     //Aim down the gun sight bool is true if right mouse button is pressed (in the texture assignment, the upAgainstWall animation will still take precident over aiming)
-    aiming = IsMouseButtonDown(MOUSE_BUTTON_RIGHT);
+    //aiming = IsMouseButtonDown(MOUSE_BUTTON_RIGHT);
 }
 
 
@@ -99,27 +110,56 @@ void Player::Animate(int screenWidth, int screenHeight, Camera& camera, Vector3 
         aimingShotTexture = LoadTexture("resources/AimingShot.png");//Aiming and shooting
         aimingTexture = LoadTexture("resources/Aiming.png");//Just Aiming
         shotTexture = LoadTexture("resources/Shot.png");//Shooting without aiming
-        idleHandTexture = LoadTexture("resources/hand.png");//Idle hand
+        idleHandTexture = LoadTexture("resources/Guns/Pistol.png");//Idle hand
         //default/idleTexture assignment
         handTexture = idleHandTexture;
+
+
+		//Gun textures
+		pistolTexture = LoadTexture("resources/Guns/Pistol.png");
+		akTexture = LoadTexture("resources/Guns/Ak.png");
+		shotgunTexture = LoadTexture("resources/Guns/Shotgun.png");
+		smgTexture = LoadTexture("resources/Guns/Smg.png");
+        //Gun sounds
+        pistolShot = LoadSound("resources/Sounds/pistolShot.wav");
+        akShot = LoadSound("resources/Sounds/akShot.wav");
+        shotgunShot = LoadSound("resources/Sounds/shotgunShot.wav");
+        smgShot = LoadSound("resources/Sounds/smgShot.wav");
+
+
 
         done = true;
     }
 
     //Bobbing hand by bobbing time by bobbing amount
-    Vector2 centerOffset = { 57.5 , 10};//Offset to put the gun dead in the center of the screen for shooting
-    float bobbingTextureOffset = sin(bobbingTime) * bobbingAmount;
-    float cropOffset = 10;//cropOffset to stop bottom of hand crop showing while texture moves up and down
-    int handPosX = (screenWidth - handTexture.width - centerOffset.x) / 2;//Set to center of the screen
-    int handPosY = screenHeight - handTexture.height + cropOffset + bobbingTextureOffset + centerOffset.y;//Set to center of the screen + offset for Height
-    Vector2 handPos = { handPosX, handPosY };//Assign to vector2 for drawing
+    if (shot)
+    {
+        Vector2 centerOffset = { 57.5 , 10 };//Offset to put the gun dead in the center of the screen for shooting
+        float cropOffset = 10;//cropOffset to stop bottom of hand crop showing while texture moves up and down
+        handPos.x = ((screenWidth - handTexture.width - centerOffset.x) / 2) + 15;//Set to center of the screen
+        handPos.y = screenHeight - handTexture.height + cropOffset + centerOffset.y + 10;//Set to center of the screen + offset for Height
+	}
+	else
+    {
+        Vector2 centerOffset = { 57.5 , 10 };//Offset to put the gun dead in the center of the screen for shooting
+        float bobbingTextureOffset = sin(bobbingTime) * bobbingAmount;
+        float cropOffset = 10;//cropOffset to stop bottom of hand crop showing while texture moves up and down
+        handPos.x = (screenWidth - handTexture.width - centerOffset.x) / 2;//Set to center of the screen
+        handPos.y = screenHeight - handTexture.height + cropOffset + bobbingTextureOffset + centerOffset.y;//Set to center of the screen + offset for Height
+        
+    }
 
     //Animation assignment
-    if (closeToWall) handTexture = closeToWallTexture;//Close to wall
-    else if (aiming && shot) handTexture = aimingShotTexture;//Aiming and shooting
-    else if (aiming) handTexture = aimingTexture;//Just Aiming
-    else if (shot) handTexture = shotTexture;//Shooting without aiming
-    else handTexture = idleHandTexture;//Idle hand
+    //if (closeToWall) handTexture = closeToWallTexture;//Close to wall
+    //else if (aiming && shot) handTexture = aimingShotTexture;//Aiming and shooting
+    //else if (aiming) handTexture = aimingTexture;//Just Aiming
+    //else if (shot) handTexture = shotTexture;//Shooting without aiming
+    //else handTexture = idleHandTexture;//Idle hand
+
+	if (pistolEquipped) handTexture = pistolTexture;
+	else if (akEquipped) handTexture = akTexture;
+	else if (shotgunEquipped) handTexture = shotgunTexture;
+	else if (smgEquipped) handTexture = smgTexture;
 
     //20 == map width and height values
     float scale = globals.miniMapScale / 2;
@@ -129,6 +169,30 @@ void Player::Animate(int screenWidth, int screenHeight, Camera& camera, Vector3 
 
 
 
+
+void Player::unequipAll()
+{
+	pistolEquipped = false;
+	akEquipped = false;
+	shotgunEquipped = false;
+	smgEquipped = false;
+}
+
+void Player::setFireRate()
+{
+	if (pistolEquipped) currentFireRate = pistolFireRate;
+	else if (akEquipped) currentFireRate = akFireRate;
+	else if (shotgunEquipped) currentFireRate = shotgunFireRate;
+	else if (smgEquipped) currentFireRate = smgFireRate;
+}
+
+void Player::playSound()
+{
+	if (pistolEquipped) PlaySound(pistolShot);
+	else if (akEquipped) PlaySound(akShot);
+	else if (shotgunEquipped) PlaySound(shotgunShot);
+	else if (smgEquipped) PlaySound(smgShot);
+}
 
 void Player::PreventBoundingBoxCollisions(const std::vector<BoundingBox>& obstacles, BoundingBox& playerBox, Camera& camera, Vector3 oldCamPos)
 {

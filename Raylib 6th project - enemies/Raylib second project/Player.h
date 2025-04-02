@@ -22,6 +22,35 @@ public:
     Texture2D shotTexture;
     Texture2D idleHandTexture;
 
+    //Hand
+	Vector2 handPos = { 0, 0 };
+	//Gun textures
+	Texture2D pistolTexture;
+	Texture2D akTexture;
+	Texture2D shotgunTexture;
+	Texture2D smgTexture;
+
+    //Weapons
+	void unequipAll();
+    bool pistolEquipped = true;
+	bool akEquipped = false;
+	bool shotgunEquipped = false;
+	bool smgEquipped = false;
+
+	//Fire rates
+	void setFireRate();
+	float currentFireRate;
+    bool justFired = false;
+	float pistolFireRate = 0.5f;
+	float akFireRate = 0.15f;
+	float shotgunFireRate = 1.0f;
+	float smgFireRate = 0.1f;
+	//Shot sound
+	void playSound();
+	Sound pistolShot;
+	Sound akShot;
+	Sound shotgunShot;
+	Sound smgShot;
 
     //Bobbing variables
     float bobbingTime;
