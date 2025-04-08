@@ -5,8 +5,8 @@
 #include <rlgl.h>
 #include <unordered_set>
 
-const int MAP_WIDTH = 20;
-const int MAP_HEIGHT = 20;
+const int MAP_WIDTH = 40;
+const int MAP_HEIGHT = 40;
 
 class Globals
 {
@@ -28,5 +28,5 @@ public:
 
 
     //Scale the minimap
-    float miniMapScale = 8.0f;
+    float miniMapScale = 10.0f;
 };

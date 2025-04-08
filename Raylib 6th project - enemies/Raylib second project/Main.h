@@ -15,6 +15,8 @@
 
 #include "ParticleSystem.h"
 
+#include "UI.h"
+
 
 //Functions
 void Update();
@@ -68,4 +70,7 @@ Scenes scenes;
 Player player;
 World world;
 Enemy enemy;
+
 ParticleSystem particleSystem;
+
+UI gameUI;

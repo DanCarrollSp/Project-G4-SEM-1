@@ -29,6 +29,32 @@ public:
 	Texture2D akTexture;
 	Texture2D shotgunTexture;
 	Texture2D smgTexture;
+    //Ammo
+    void subtractAmmo();
+    void reload();
+    std::pair<int, int> GetAmmo();
+    int pistolAmmo = 12, pistolMaxAmmo = 12;
+    int akAmmo = 30, akMaxAmmo = 30;
+    int shotgunAmmo = 2, shotgunMaxAmmo = 2;
+    int smgAmmo = 40, smgMaxAmmo = 40;
+    //Reload
+    void cancelReload();       // Stops reload on gun switch
+    void updateReload();       // Called every frame
+    Texture2D reloadingTexture;
+    bool isReloading = false;
+    float reloadTimer = 0.0f;
+    const float reloadDuration = 3.0f;
+    Sound pistolReload;
+    Sound akReload;
+    Sound shotgunReload;
+    Sound smgReload;
+    //Out of ammo
+    Sound clickSound;
+    //
+
+
+
+
 
     //Weapons
 	void unequipAll();
@@ -36,6 +62,9 @@ public:
 	bool akEquipped = false;
 	bool shotgunEquipped = false;
 	bool smgEquipped = false;
+    //
+
+    
 
 	//Fire rates
 	void setFireRate();
@@ -51,6 +80,7 @@ public:
 	Sound akShot;
 	Sound shotgunShot;
 	Sound smgShot;
+
 
     //Bobbing variables
     float bobbingTime;

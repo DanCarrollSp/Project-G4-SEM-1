@@ -40,10 +40,11 @@ void Player::update(Camera camera)
     hitbox.max = { camera.position.x + hitBoxWidth, camera.position.y + hitBoxHeight - 0.1f,  camera.position.z + hitBoxWidth };
 
     //change guns
-	if (IsKeyPressed(KEY_ONE)) unequipAll(), pistolEquipped = true;
-	if (IsKeyPressed(KEY_TWO)) unequipAll(), akEquipped = true;
-	if (IsKeyPressed(KEY_THREE)) unequipAll(), shotgunEquipped = true;
-	if (IsKeyPressed(KEY_FOUR)) unequipAll(), smgEquipped = true;
+    if (IsKeyPressed(KEY_ONE)) { unequipAll(); pistolEquipped = true; cancelReload(); }
+    if (IsKeyPressed(KEY_TWO)) { unequipAll(); akEquipped = true; cancelReload(); }
+    if (IsKeyPressed(KEY_THREE)) { unequipAll(); shotgunEquipped = true; cancelReload(); }
+    if (IsKeyPressed(KEY_FOUR)) { unequipAll(); smgEquipped = true; cancelReload(); }
+
 }
 
 void Player::HandleInput()
@@ -57,18 +58,66 @@ void Player::HandleInput()
     else bobbingTime = 0.0f;
 
 
-	//If the player has just fired, set the justFired bool to true
-    justFired = false;
+    
+        // existing shooting logic
 
-    //Increases the shot cooldown timer every frame
-    shotTimer += GetFrameTime();
-    //Fires if cooldown has passed and button is down
-    if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && shotTimer >= currentFireRate)
-    {
-        justFired = true;
-        playSound();
-        shotTimer = 0.0f;
-    }
+
+    //If the player has just fired, set the justFired bool to true
+    // Increases the shot cooldown timer every frame
+        shotTimer += GetFrameTime();
+        justFired = false;
+
+        if (!isReloading)
+        {
+            bool shouldShoot = false;
+
+            // Semi-auto weapons use mouse click, no cooldown
+            if ((pistolEquipped || shotgunEquipped) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+            {
+                shouldShoot = true;
+            }
+            // Full-auto weapons use hold + cooldown
+            else if ((akEquipped || smgEquipped) && IsMouseButtonDown(MOUSE_BUTTON_LEFT) && shotTimer >= currentFireRate)
+            {
+                shouldShoot = true;
+            }
+
+            if (shouldShoot)
+            {
+                bool hasAmmo = false;
+
+                if (pistolEquipped && pistolAmmo > 0) hasAmmo = true;
+                if (akEquipped && akAmmo > 0) hasAmmo = true;
+                if (shotgunEquipped && shotgunAmmo > 0) hasAmmo = true;
+                if (smgEquipped && smgAmmo > 0) hasAmmo = true;
+
+                if (hasAmmo)
+                {
+                    justFired = true;
+                    shotTimer = 0.0f;
+                    playSound();
+                    subtractAmmo();
+                }
+                else
+                {
+                    PlaySound(clickSound);
+                    shotTimer = 0.0f;
+                }
+            }
+
+            //Reload
+            if (IsKeyPressed(KEY_R)) reload();
+
+        }
+
+        //Reload with cancable reload
+        //if (IsKeyPressed(KEY_R))
+        //{
+        //    if (isReloading) cancelReload();
+        //    else  reload();
+        //}
+
+        updateReload();
 
 
     //Aim down the gun sight bool is true if right mouse button is pressed (in the texture assignment, the upAgainstWall animation will still take precident over aiming)
@@ -126,13 +175,20 @@ void Player::Animate(int screenWidth, int screenHeight, Camera& camera, Vector3 
         shotgunShot = LoadSound("resources/Sounds/shotgunShot.wav");
         smgShot = LoadSound("resources/Sounds/smgShot.wav");
 
+        //
+        pistolReload = LoadSound("resources/Sounds/pistolReload.wav");
+        akReload = LoadSound("resources/Sounds/akReload.wav");
+        shotgunReload = LoadSound("resources/Sounds/shotgunReload.wav");
+        smgReload = LoadSound("resources/Sounds/smgReload.wav");
+        reloadingTexture = LoadTexture("resources/Guns/reloading.png");
+        clickSound = LoadSound("resources/Sounds/Click.wav");
 
 
         done = true;
     }
 
     //Bobbing hand by bobbing time by bobbing amount
-    if (shot)
+    if (justFired)
     {
         Vector2 centerOffset = { 57.5 , 10 };//Offset to put the gun dead in the center of the screen for shooting
         float cropOffset = 10;//cropOffset to stop bottom of hand crop showing while texture moves up and down
@@ -163,11 +219,45 @@ void Player::Animate(int screenWidth, int screenHeight, Camera& camera, Vector3 
 
     //20 == map width and height values
     float scale = globals.miniMapScale / 2;
-    DrawCircle(screenWidth - MAP_WIDTH * scale - MAP_HEIGHT + position.x * scale, MAP_WIDTH + position.z * scale, scale, GREEN);//Draw players position on minimap
-    DrawTextureEx(handTexture, handPos, 0.0f, 1, WHITE);//Draw hand
+    DrawCircle(screenWidth - MAP_WIDTH * scale - MAP_HEIGHT + position.x * scale, (MAP_WIDTH + 100) + position.z * scale, scale, GREEN);//Draw players position on minimap
+
+	//Draws the players hand and updates its animations
+    if (isReloading)
+    {
+        //Makes it pulse
+        float pulse = 0.8f + 0.012f * sin(reloadTimer * 6.0f); // Pulses 3 times per second
+
+        // Calculates scaled size
+        float width = reloadingTexture.width * pulse;
+        float height = reloadingTexture.height * pulse;
+
+        // Centers the icon
+        Vector2 iconPos = {
+            (float)screenWidth / 2 - width / 2,
+            (float)screenHeight - height - 60
+        };
+
+        // Draw with scaling
+        DrawTextureEx(reloadingTexture, iconPos, 0.0f, pulse, WHITE);
+    }
+    else
+    {
+        DrawTextureEx(handTexture, handPos, 0.0f, 1, WHITE);
+    }
+
 }
 
 
+
+
+std::pair<int, int> Player::GetAmmo()
+{
+    if (pistolEquipped) return { pistolAmmo, pistolMaxAmmo };
+    if (akEquipped) return { akAmmo, akMaxAmmo };
+    if (shotgunEquipped) return { shotgunAmmo, shotgunMaxAmmo };
+    if (smgEquipped) return { smgAmmo, smgMaxAmmo };
+    return { 0, 0 };
+}
 
 
 void Player::unequipAll()
@@ -334,3 +424,59 @@ void Player::closeToWallCheck(Camera& camera, const std::vector<BoundingBox>& wa
         }
     }
 }
+
+
+void Player::subtractAmmo()
+{
+    if (pistolEquipped && pistolAmmo > 0) pistolAmmo--;
+    else if (akEquipped && akAmmo > 0) akAmmo--;
+    else if (shotgunEquipped && shotgunAmmo > 0) shotgunAmmo--;
+    else if (smgEquipped && smgAmmo > 0) smgAmmo--;
+}
+
+void Player::reload()
+{
+    isReloading = true;
+    reloadTimer = 0.0f;
+    if (pistolEquipped) PlaySound(pistolReload);
+    else if (akEquipped) PlaySound(akReload);
+    else if (shotgunEquipped) PlaySound(shotgunReload);
+    else if (smgEquipped) PlaySound(smgReload);
+}
+
+void Player::cancelReload()
+{
+    isReloading = false;
+    reloadTimer = 0.0f;
+
+    StopSound(pistolReload);
+    StopSound(akReload);
+    StopSound(shotgunReload);
+    StopSound(smgReload);
+}
+
+void Player::updateReload()
+{
+    if (isReloading)
+    {
+        reloadTimer += GetFrameTime();
+        float totalReloadTime = reloadDuration;
+
+        if (shotgunEquipped or pistolEquipped)
+        {
+            totalReloadTime += 1.0f; // Add 1 extra seconds for shotgun and pistol
+        }
+
+        if (reloadTimer >= totalReloadTime)
+        {
+            if (pistolEquipped) pistolAmmo = pistolMaxAmmo;
+            else if (akEquipped) akAmmo = akMaxAmmo;
+            else if (shotgunEquipped) shotgunAmmo = shotgunMaxAmmo;
+            else if (smgEquipped) smgAmmo = smgMaxAmmo;
+
+            isReloading = false;
+        }
+
+    }
+}
+

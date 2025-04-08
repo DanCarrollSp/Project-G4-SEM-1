@@ -77,6 +77,8 @@ int main(void)
             {
                 DisableCursor();
                 mouseDisabled = true;
+
+                gameUI.LoadAssets("resources/fonts/Blood.ttf", "resources/fonts/Ammo.otf", "resources/images/ak_icon.png");
             }
 
 
@@ -126,7 +128,6 @@ void Update()
     if (!enemyMove)enemy.Move(player.position, navGrid, world.GetWallBoundingBoxes(), GetFrameTime());
 	//Particles
     particleSystem.UpdateAll(GetFrameTime());
-
 }
 
 
@@ -187,14 +188,21 @@ void Draw()
 
     //Draws the minimap
     float scale = globals.miniMapScale / 2;
-    DrawTextureEx(miniMap, Vector2{ screenWidth - MAP_WIDTH * scale - MAP_WIDTH, MAP_WIDTH }, 0.0f, scale, WHITE);//Minimap
-    DrawRectangleLines(screenWidth - MAP_WIDTH * scale - MAP_WIDTH, MAP_WIDTH, MAP_WIDTH * scale, MAP_HEIGHT * scale, RED);//Minimap border
+    DrawTextureEx(miniMap, Vector2{ screenWidth - MAP_WIDTH * scale - MAP_WIDTH, MAP_WIDTH + 100 }, 0.0f, scale, WHITE);//Minimap
+    DrawRectangleLines(screenWidth - MAP_WIDTH * scale - MAP_WIDTH, MAP_WIDTH + 100, MAP_WIDTH * scale, MAP_HEIGHT * scale, RED);//Minimap border
 
     //Draws the players hand and updates its animations
     player.Animate(screenWidth, screenHeight, camera, mapPosition);
 
+    //UI
+    //auto [currentAmmo, maxAmmo] = player.GetAmmo();
+    auto ammo = player.GetAmmo();
+    auto currentAmmo = std::get<0>(ammo);
+    auto maxAmmo = std::get<1>(ammo);
+    gameUI.Draw(100, currentAmmo, maxAmmo);
+	gameUI.DrawStatic();
 
-
+	if (paused) DrawTexture(gameUI.pauseTexture, 0 , 0 , WHITE);//Pause menu
     
     //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	EndDrawing(); //End of drawing
