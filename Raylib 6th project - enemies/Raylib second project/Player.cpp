@@ -150,6 +150,33 @@ Vector3 Player::calcBulletCollision(Camera& camera, BoundingBox boxCollider)
     return { 0.0f, 0.0f, 0.0f };
 }
 
+BulletHitResult Player::getBulletCollision(Camera& camera, const std::vector<BoundingBox>& boxes)
+{
+    BulletHitResult result;
+
+    Vector3 rayOrigin = camera.position;
+    Vector3 rayDirection = Vector3Normalize(Vector3Subtract(camera.target, camera.position));
+    Ray ray = { rayOrigin, rayDirection };
+
+    float closestDistance = FLT_MAX;
+
+    for (const auto& box : boxes)
+    {
+        RayCollision collision = GetRayCollisionBox(ray, box);
+
+        if (collision.hit && collision.distance < closestDistance)
+        {
+            closestDistance = collision.distance;
+            result.hit = true;
+            result.point = collision.point;
+            result.box = box;
+        }
+    }
+
+    return result;
+}
+
+
 void Player::Animate(int screenWidth, int screenHeight, Camera& camera, Vector3 mapPosition)
 {
     if (done == false)

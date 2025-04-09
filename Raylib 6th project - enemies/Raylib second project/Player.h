@@ -7,6 +7,14 @@
 //Local Libs
 #include "Globals.h"
 
+struct BulletHitResult
+{
+    bool hit = false;
+    Vector3 point = { 0, 0, 0 };
+    BoundingBox box = { 0 };
+};
+
+
 class Player
 {
 
@@ -125,6 +133,7 @@ public:
     void Animate(int screenWidth, int screenHeight, Camera& camera, Vector3 mapPosition);//Draws the players hand on the screen (function called in main) 
 
 	Vector3 calcBulletCollision(Camera& camera, BoundingBox boxCollider);//Returns position of closest hit bounding box
+    BulletHitResult getBulletCollision(Camera& camera, const std::vector<BoundingBox>& boxes);//Returns position of closest hit bounding box
 
     //Players shooting/bullets
     Vector3 hitPoint = { 0 };

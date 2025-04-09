@@ -39,7 +39,9 @@ int main(void)
     //
     bloodTexture = LoadTexture("resources/blood.png");
     //
-    muzzleTexture = LoadTexture("resources/m.png");
+    shellCasing = LoadTexture("resources/m.png");
+    //
+    bulletHole = LoadTexture("resources/bulletHole.png");
 
     //Map creation using walls, doors, etc
     mapPixels = LoadImageColors(imMap);//Color map, converts 'image' pixel color data into map data for collisions (black = passavble, else = not passable)
@@ -144,6 +146,16 @@ void Update()
     if (!enemyMove)enemy.Move(player.position, navGrid, world.GetWallBoundingBoxes(), GetFrameTime());
 	//Particles
     particleSystem.UpdateAll(GetFrameTime());
+    //Decals
+    decalManager.Update(GetFrameTime());
+
+    BulletHitResult wallHit;
+    if(player.justFired) wallHit = player.getBulletCollision(camera, world.GetWallBoundingBoxes());
+    if (wallHit.hit && player.justFired)
+    {
+        Vector3 normal = EstimateNormalFromHit(wallHit.point, wallHit.box);
+        decalManager.AddDecal(wallHit.point, normal, 0.1f, &bulletHole);
+    }
 }
 
 
@@ -194,8 +206,12 @@ void Draw()
     BeginShaderMode(alphaShader);
     debug();//Debugging visuals ( example - shows box collider outlines and raycasts)
     
+
+    decalManager.Draw();
+
     if(!stopEnemy)enemy.Draw(camera);//Draws the enemy, camera for billboarding
 	particleSystem.DrawAll(camera);//Draws all active particle effects
+
 
     EndShaderMode();
     EndMode3D();
@@ -279,7 +295,7 @@ void particles()
     muzzleParams.fadeAlpha = true;
     muzzleParams.enableRandomRotation = true;
 
-    muzzleParams.texture = &muzzleTexture;
+    muzzleParams.texture = &shellCasing;
 }
 
 
@@ -333,23 +349,24 @@ void debug()
 
         //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         /// Raycast hit points
+		Vector3 zero = { 0, 0, 0 };
 
         //Wall-bullet collision point
         for (int i = 0; i < world.GetWallBoundingBoxes().size(); i++)
         {
             Vector3 wallCollision = player.calcBulletCollision(camera, world.GetWallBoundingBoxes()[i]);
-            if (wallCollision != Vector3{ 0, 0, 0 }) DrawSphere(wallCollision, 0.1f, BLUE);
+            if (chechVec3(enemyCollision, zero)) DrawSphere(wallCollision, 0.1f, BLUE);
         }
         //Door-bullet collision point
         for (int i = 0; i < world.GetDoorBoundingBoxes().size(); i++)
         {
             Vector3 doorCollision = player.calcBulletCollision(camera, world.GetDoorBoundingBoxes()[i]);
-            if (doorCollision != Vector3{ 0, 0, 0 }) DrawSphere(doorCollision, 0.1f, GREEN);
+            if (chechVec3(enemyCollision, zero)) DrawSphere(doorCollision, 0.1f, GREEN);
         }
 
 
         //Draws a RED sphere on a shot walls (drawn over by blue hit detection for now)
-        if (player.hitTarget && player.shot) DrawSphere(player.hitPoint, 0.1f, RED);
+        if (player.hitTarget && player.shot)DrawSphere(player.hitPoint, 0.1f, RED);
     }
 
 
@@ -358,9 +375,10 @@ void debug()
     Vector3 rayLinePoint = Vector3Add(camera.position, Vector3Scale(rayDirection, 0.1f));
     DrawSphere(rayLinePoint, 0.0002f, crosshairColor);
 
+    Vector3 zero = { 0, 0, 0 };
     //Draws a BLUE sphere on enemy hitboxes and makes the crosshair red while aiming at enemies
 	enemyCollision = player.calcBulletCollision(camera, enemy.hitbox);//returns 0,0,0 if no collision, otherwise returns the collision point
-    if (enemyCollision != Vector3{ 0, 0, 0 })
+    if (chechVec3(enemyCollision, zero))
     {
         //DrawSphere(enemyCollision, 0.1f, BLUE);
         crosshairColor = RED;
@@ -372,7 +390,10 @@ void debug()
 
 
 
-
+bool chechVec3(const Vector3& vec1, const Vector3& vec2)
+{
+    return (vec1.x != vec2.x || vec1.y != vec2.y || vec1.z != vec2.z);
+}
 
 
 
@@ -391,3 +412,4 @@ void debug()
     globals.DrawTexturedCylinder(floorTexture, pos2, 0.117, 0.35, WHITE);
 }
 */
+

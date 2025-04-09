@@ -16,6 +16,8 @@
 #include "ParticleSystem.h"
 #include "ParticleEngine.h"
 
+#include "Decal.h"
+
 #include "UI.h"
 
 
@@ -47,7 +49,9 @@ Texture2D ceilingTexture;
 Texture2D wallTexture;
 Texture2D doorTexture;
 Texture2D bloodTexture;
-Texture2D muzzleTexture;
+Texture2D shellCasing;
+Texture2D bulletHole;
+
 Color* mapPixels;//Color array for collisions
 
 Texture2D barrelTexture;
@@ -77,4 +81,10 @@ Enemy enemy;
 ParticleSystem particleSystem;
 ParticleEngine particleEngine;
 
+DecalManager decalManager;
+
 UI gameUI;
+
+
+//Helper for release builds
+bool chechVec3(const Vector3& vec1, const Vector3& vec2);
