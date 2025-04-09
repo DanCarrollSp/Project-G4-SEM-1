@@ -14,6 +14,7 @@
 #include "Enemy.h"
 
 #include "ParticleSystem.h"
+#include "ParticleEngine.h"
 
 #include "UI.h"
 
@@ -72,5 +73,6 @@ World world;
 Enemy enemy;
 
 ParticleSystem particleSystem;
+ParticleEngine particleEngine;
 
 UI gameUI;

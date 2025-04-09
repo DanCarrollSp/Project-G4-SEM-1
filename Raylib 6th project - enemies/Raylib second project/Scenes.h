@@ -61,4 +61,5 @@ public:
 	//
 	//
 	bool sceneGameplay = false;
+	bool sceneParticleEngine = false;
 };

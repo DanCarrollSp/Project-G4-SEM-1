@@ -69,8 +69,16 @@ void Scenes::updateMainMenu()
 		}
 	}
 	else newGameColor = WHITE;
-	//load game
-	if (CheckCollisionPointRec(mousePos, loadGameRec)) loadGameColor = DARKGRAY;
+	//load game - Particle editor
+	if (CheckCollisionPointRec(mousePos, loadGameRec))
+	{
+		loadGameColor = DARKGRAY;
+		if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
+		{
+			deselectAllScenes();
+			sceneParticleEngine = true;
+		}
+	}
 	else loadGameColor = WHITE;
 	//options
 	if (CheckCollisionPointRec(mousePos, optionsRec)) optionsColor = DARKGRAY;
@@ -106,3 +114,32 @@ void Scenes::drawMainMenu(Camera3D &camera)
 
 	EndDrawing();
 }
+
+//void UpdateParticleEditor()
+//{
+//	// 1) Handle user input that modifies editorParams
+//	// 2) If you want continuous updates, re-instantiate or reuse a single effect
+//	// 3) Update the ParticleSystem
+//}
+//
+//void DrawParticleEditor()
+//{
+//	BeginDrawing();
+//	ClearBackground(BLACK);
+//
+//	BeginMode3D(camera);
+//
+//	// Draw your ground or some reference geometry for orientation
+//	DrawGrid(20, 1.0f);
+//	// Draw any other 3D reference objects here
+//
+//	// Draw the live ParticleSystem in 3D
+//	particleSystem.DrawAll(camera);
+//
+//	EndMode3D();
+//
+//	// Draw the GUI in 2D
+//	DrawEditorUI();
+//
+//	EndDrawing();
+//}

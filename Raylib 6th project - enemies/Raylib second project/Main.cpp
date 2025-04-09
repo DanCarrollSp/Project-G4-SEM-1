@@ -4,7 +4,6 @@
 
 Vector3 enemyCollision;
 
-
 int main(void)
 {
     //Creates the fullscreen window
@@ -19,6 +18,7 @@ int main(void)
     camera.up = Vector3{ 0.0f, 1.0f, 0.0f };//Camera orientation
     camera.fovy = 45.0f;//Fov In degrees
     camera.projection = CAMERA_PERSPECTIVE;
+
 
     //Seed random time for map generation
     srand((unsigned int)time(NULL));
@@ -68,6 +68,17 @@ int main(void)
             scenes.Update();
             scenes.Draw(camera);
         }
+
+        //Particles >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        if(scenes.sceneParticleEngine)
+		{
+			//Particle Engine
+			particleEngine.Update(GetFrameTime());
+			particleEngine.Draw(camera);
+			//Particle system
+			particleSystem.UpdateAll(GetFrameTime());
+			particleSystem.DrawAll(camera);
+		}
 
 		//Gameplay >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         if (scenes.sceneGameplay)
@@ -321,20 +332,6 @@ void debug()
     }
     else crosshairColor = WHITE;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
