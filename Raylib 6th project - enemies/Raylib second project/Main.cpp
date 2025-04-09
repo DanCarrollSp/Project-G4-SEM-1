@@ -38,8 +38,8 @@ int main(void)
     barrelTexture = LoadTexture("resources/barrel.png");
     //
     bloodTexture = LoadTexture("resources/blood.png");
-    //SetTextureFilter(bloodTexture, TEXTURE_FILTER_POINT);
-    //SetTextureFilter(texture, TEXTURE_FILTER_BILINEAR);
+    //
+    muzzleTexture = LoadTexture("resources/m.png");
 
     //Map creation using walls, doors, etc
     mapPixels = LoadImageColors(imMap);//Color map, converts 'image' pixel color data into map data for collisions (black = passavble, else = not passable)
@@ -131,9 +131,14 @@ void Update()
     player.closeToWallCheck(camera, world.GetWallBoundingBoxes());
     if (crosshairColor.r == RED.r && player.justFired)
     {
-        particles();
         particleSystem.Instantiate(bloodParams);//Shooting
     }
+    if (player.justFired && debugMode)
+    {
+		
+		particleSystem.Instantiate(muzzleParams);//Muzzle flash
+    }
+    particles();
     //Enemy AI ()
     if (!stopEnemy)enemy.Update();
     if (!enemyMove)enemy.Move(player.position, navGrid, world.GetWallBoundingBoxes(), GetFrameTime());
@@ -223,12 +228,12 @@ void Draw()
 
 void particles()
 {
-	if (player.pistolEquipped) particleSize = 0.1f;
-	else if (player.akEquipped) particleSize = 0.225f;
-	else if (player.shotgunEquipped) particleSize = 0.4f;
-	else if (player.smgEquipped) particleSize = 0.15f;
+    if (player.pistolEquipped) particleSize = 0.1f;
+    else if (player.akEquipped) particleSize = 0.225f;
+    else if (player.shotgunEquipped) particleSize = 0.4f;
+    else if (player.smgEquipped) particleSize = 0.15f;
 
-	//Blood particle effect
+    //Blood particle effect
     bloodParams.position = enemyCollision;
     bloodParams.spawnCount = 1;
     bloodParams.minSpeed = 0.5f;
@@ -245,6 +250,36 @@ void particles()
     bloodParams.enableRandomRotation = true;
 
     bloodParams.texture = &bloodTexture;
+
+
+    //Muzzle flash particle effect
+    Vector3 forward = Vector3Normalize(Vector3Subtract(camera.target, camera.position)); // Direction camera is facing
+    Vector3 right = Vector3Normalize(Vector3CrossProduct(forward, camera.up)); // Right vector
+
+    // Offset from camera position: forward + right (and maybe a little downward too)
+    Vector3 spawnOffset = Vector3Add(
+        Vector3Scale(forward, 0.3f),    // 0.3 units in front
+        Vector3Scale(right, 0.09f)      // 0.15 units to the right
+    );
+    spawnOffset.y -= 0.03f;             // slight downward offset
+
+    muzzleParams.position = Vector3Add(camera.position, spawnOffset);
+
+    muzzleParams.spawnCount = 1;
+    muzzleParams.minSpeed = 0.5f;
+    muzzleParams.maxSpeed = 1.0f;
+    muzzleParams.startColor = MAROON;
+    muzzleParams.endColor = MAROON;
+    muzzleParams.minLifetime = 2.0f;
+    muzzleParams.maxLifetime = 2.0f;
+    muzzleParams.gravity = { 0.0f, -3.0f, 0.0 };
+    muzzleParams.startSize = particleSize / 4;
+    muzzleParams.endSize = particleSize / 4;
+    muzzleParams.maxAngle = 180.0f;
+    muzzleParams.fadeAlpha = true;
+    muzzleParams.enableRandomRotation = true;
+
+    muzzleParams.texture = &muzzleTexture;
 }
 
 

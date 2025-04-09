@@ -47,6 +47,7 @@ Texture2D ceilingTexture;
 Texture2D wallTexture;
 Texture2D doorTexture;
 Texture2D bloodTexture;
+Texture2D muzzleTexture;
 Color* mapPixels;//Color array for collisions
 
 Texture2D barrelTexture;
@@ -54,6 +55,7 @@ Texture2D barrelTexture;
 //Particles
 float particleSize;
 ParticleParams bloodParams;
+ParticleParams muzzleParams;
 
 //Disable mouse once
 bool mouseDisabled = false;
