@@ -142,6 +142,7 @@
   <ItemGroup>
     <ClCompile Include="Decal.cpp" />
     <ClCompile Include="Enemy.cpp" />
+    <ClCompile Include="EntitySpawner.cpp" />
     <ClCompile Include="Globals.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="ParticleEngine.cpp" />
@@ -149,12 +150,14 @@
     <ClCompile Include="ParticleSystem.cpp" />
     <ClCompile Include="Pathfinding.cpp" />
     <ClCompile Include="Player.cpp" />
+    <ClCompile Include="Shooting.cpp" />
     <ClCompile Include="UI.cpp" />
     <ClCompile Include="World.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Decal.h" />
     <ClInclude Include="Enemy.h" />
+    <ClInclude Include="EntitySpawner.h" />
     <ClInclude Include="Globals.h" />
     <ClInclude Include="Main.h" />
     <ClInclude Include="ParticleEngine.h" />
@@ -162,6 +165,7 @@
     <ClInclude Include="ParticleSystem.h" />
     <ClInclude Include="Pathfinding.h" />
     <ClInclude Include="Player.h" />
+    <ClInclude Include="Shooting.h" />
     <ClInclude Include="UI.h" />
     <ClInclude Include="World.h" />
   </ItemGroup>

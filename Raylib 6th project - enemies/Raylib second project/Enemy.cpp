@@ -6,6 +6,7 @@
 Enemy::Enemy() 
 {
     position = { 5.0f, 0.5f, 5.0f };
+    lastPosition = position;
     speed = 3.0f;
 
 
@@ -21,7 +22,11 @@ Enemy::Enemy()
 
     timeSinceLastPathRecalc = 0.0f;
 
-    for (int i = 0; i++; i > 4) SetTextureFilter(walkTextures[i], TEXTURE_FILTER_BILINEAR);
+    //for (int i = 0; i++; i > 4) SetTextureFilter(walkTextures[i], TEXTURE_FILTER_BILINEAR);
+
+    // Initialize health and status
+    health = 100;
+    isAlive = true;
 }
 
 Enemy::~Enemy() 
@@ -29,8 +34,18 @@ Enemy::~Enemy()
 
 }
 
+void Enemy::SetPosition(const Vector3& newPos)
+{
+    position = newPos;
+
+    //Updates bounding box
+    hitbox.min = { position.x - hitBoxWidth, position.y - hitBoxHeight, position.z - hitBoxWidth };
+    hitbox.max = { position.x + hitBoxWidth, position.y + hitBoxHeight, position.z + hitBoxWidth };
+}
+
 void Enemy::Update()
 {
+
     //Temp movment
     if (IsKeyDown(KEY_RIGHT)) position.x += speed * GetFrameTime();
     if (IsKeyDown(KEY_LEFT)) position.x -= speed * GetFrameTime();
@@ -43,6 +58,7 @@ void Enemy::Update()
 
 void Enemy::Draw(Camera camera)
 {
+
     DrawBillboard(camera, currentTexture, position, 1.0f, WHITE);
     if (!debug) DrawBoundingBox(hitbox, RED);
 }
@@ -51,31 +67,55 @@ void Enemy::Draw(Camera camera)
 
 void Enemy::animate()
 {
-    static double lastUpdateTime = 0.0; // Tracks the last time the texture was updated
-    static int frameIndex = 0;          // Index of the current walk texture
 
     if (!texturesLoaded)
     {
         // Load walk textures only once
-        walkTextures[0] = LoadTexture("resources/enemies/Walk1.png");
-        walkTextures[1] = LoadTexture("resources/enemies/Walk2.png");
-        walkTextures[2] = LoadTexture("resources/enemies/Walk3.png");
-        walkTextures[3] = LoadTexture("resources/enemies/Walk4.png");
+        walkTextures[0] = LoadTexture("resources/enemies/D1.png");
+        walkTextures[1] = LoadTexture("resources/enemies/D2.png");
+        walkTextures[2] = LoadTexture("resources/enemies/D3.png");
+        walkTextures[3] = LoadTexture("resources/enemies/D4.png");
 
+        // Optionally apply texture filtering here:
+        for (int i = 0; i < 4; i++) {
+            SetTextureFilter(walkTextures[i], TEXTURE_FILTER_BILINEAR);
+        }
         texturesLoaded = true;
+
+        // Set initial texture to idle frame
+        currentTexture = walkTextures[0];
     }
 
     double currentTime = GetTime();
-    if (currentTime - lastUpdateTime >= 0.125) // Check if 1 second has passed
+    // Determine if the enemy has moved (using a very small threshold)
+    float movementThreshold = 0.001f;
+    bool isMoving = Vector3Distance(position, lastPosition) > movementThreshold;
+
+    if (isMoving)
     {
-        lastUpdateTime = currentTime;
-        frameIndex = (frameIndex + 1) % 4; // Cycle through textures
-        currentTexture = walkTextures[frameIndex];       // Set current texture
+        // Only cycle through animation frames if the enemy is actually moving
+        if (currentTime - lastAnimationTime >= 0.125)
+        {
+            lastAnimationTime = currentTime;
+            frameIndex = (frameIndex + 1) % 4; // Cycle through textures
+            currentTexture = walkTextures[frameIndex];
+        }
     }
+    else
+    {
+        // If the enemy isn’t moving, revert to the idle (first) frame
+        frameIndex = 0;
+        currentTexture = walkTextures[0];
+    }
+
+    // Update lastPosition for the next frame
+    lastPosition = position;
 }
 
+//Deprecated, not used anymore since handling of shooting done in shooting.cpp (keeping for now in case its late and i feel like ill regret deleting it tomorrow morning)
 Vector3 Enemy::collision(Ray ray)
 {
+
     // Check if the ray hits the enemy's hitbox
     RayCollision collision = GetRayCollisionBox(ray, hitbox);
     if (collision.hit)
@@ -89,6 +129,7 @@ Vector3 Enemy::collision(Ray ray)
 
 void Enemy::Move(Vector3 target, const std::vector<std::vector<bool>>& navGrid, const std::vector<BoundingBox>& walls, float deltaTime)
 {
+
     //Only move if not at the target position
     if (Vector3Distance(position, target) <= 0.55f && Vector3Distance(position, target) >= -0.55f)
     {
@@ -157,6 +198,8 @@ void Enemy::RecalculatePath(Vector3 target, const std::vector<std::vector<bool>>
 
 void Enemy::vectorCollision(const std::vector<BoundingBox>& walls)
 {
+    if (!isAlive) return;
+
     //Update bounding box based on position
     hitbox.min = { position.x - hitBoxWidth, position.y - hitBoxHeight, position.z - hitBoxWidth };
     hitbox.max = { position.x + hitBoxWidth, position.y + hitBoxHeight, position.z + hitBoxWidth };
@@ -185,5 +228,16 @@ void Enemy::vectorCollision(const std::vector<BoundingBox>& walls)
             hitbox.min = { position.x - hitBoxWidth, position.y - hitBoxHeight, position.z - hitBoxWidth };
             hitbox.max = { position.x + hitBoxWidth, position.y + hitBoxHeight, position.z + hitBoxWidth };
         }
+    }
+}
+
+void Enemy::TakeDamage(int amount)
+{
+    health -= amount;
+    if (health <= 0)
+    {
+        health = 0;
+        isAlive = false;
+        // You can play a death animation or sound here
     }
 }

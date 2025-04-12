@@ -5,13 +5,16 @@
 #include "raymath.h"
 #include "time.h"
 #include <random>
+#include <cfloat>
 
 //Local Libs
 #include "Globals.h"
 #include "Scenes.h"
 #include "Player.h"
+#include "Shooting.h"
 #include "World.h"
 #include "Enemy.h"
+#include "EntitySpawner.h"
 
 #include "ParticleSystem.h"
 #include "ParticleEngine.h"
@@ -26,6 +29,8 @@ void Update();
 void Draw();
 
 void particles();
+
+void shooting();
 
 void debugControls();
 void debug();
@@ -59,7 +64,7 @@ Texture2D barrelTexture;
 //Particles
 float particleSize;
 ParticleParams bloodParams;
-ParticleParams muzzleParams;
+ParticleParams shellCasingParams;
 
 //Disable mouse once
 bool mouseDisabled = false;
@@ -76,7 +81,8 @@ Globals globals;
 Scenes scenes;
 Player player;
 World world;
-Enemy enemy;
+static std::vector<Enemy> enemies;
+EntitySpawner spawner(enemies);
 
 ParticleSystem particleSystem;
 ParticleEngine particleEngine;
@@ -85,6 +91,9 @@ DecalManager decalManager;
 
 UI gameUI;
 
+//Shooting
+Vector3 crosshair;
+BulletHitResult hitResult;
 
 //Helper for release builds
 bool chechVec3(const Vector3& vec1, const Vector3& vec2);

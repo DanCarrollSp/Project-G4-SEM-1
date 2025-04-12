@@ -2,6 +2,7 @@
 #include "rlgl.h"
 #include "Scenes.h"
 
+
 Vector3 enemyCollision;
 
 int main(void)
@@ -48,12 +49,13 @@ int main(void)
 
     //Shaders
     alphaShader = LoadShader(NULL, "shaders/alpha.fs");
-	//Particle setup
-	particles();
+    //Particle setup
+    particles();
 
     InitAudioDevice();
-
-
+    spawner.Spawn(0, { 5.0f, 0.5f, 5.0f });
+    spawner.Spawn(0, { 2.0f, 0.5f, 10.0f });
+    spawner.Spawn(0, { 8.0f, 0.5f, 10.0f });
 
     //Position of the map in the game world space
     mapPosition = { 0, 0, 0 };
@@ -64,7 +66,7 @@ int main(void)
     while (!WindowShouldClose())
     {
 
-		//Main menu >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        //Main menu >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         if (scenes.sceneMainMenu)
         {
             scenes.Update();
@@ -72,17 +74,17 @@ int main(void)
         }
 
         //Particles >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        if(scenes.sceneParticleEngine)
-		{
-			//Particle Engine
-			particleEngine.Update(GetFrameTime());
-			particleEngine.Draw(camera);
-			//Particle system
-			particleSystem.UpdateAll(GetFrameTime());
-			particleSystem.DrawAll(camera);
-		}
+        if (scenes.sceneParticleEngine)
+        {
+            //Particle Engine
+            particleEngine.Update(GetFrameTime());
+            particleEngine.Draw(camera);
+            //Particle system
+            particleSystem.UpdateAll(GetFrameTime());
+            particleSystem.DrawAll(camera);
+        }
 
-		//Gameplay >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        //Gameplay >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         if (scenes.sceneGameplay)
         {
             //Disables the cursor to lock the mouse to the screen (once)
@@ -95,7 +97,7 @@ int main(void)
             }
 
 
-			//Allows debug controls while paused (including the ability to pause and unpause)
+            //Allows debug controls while paused (including the ability to pause and unpause)
             debugControls();
 
             if (!paused)
@@ -108,7 +110,7 @@ int main(void)
         }
     }
 
-    if(!WindowShouldClose) CloseWindow();
+    if (!WindowShouldClose) CloseWindow();
     return 0;
 }
 
@@ -124,38 +126,30 @@ void Update()
     UpdateCamera(&camera, CAMERA_FIRST_PERSON);//Update the camera (movement)
     //Collision
     player.PreventBoundingBoxCollisions(world.GetWallBoundingBoxes(), player.hitbox, camera, oldCamPos);//Prevent player from walking through bounding boxes
-    if (!stopEnemy)player.PreventBoundingBoxCollision(enemy.GetBoundingBox(), player.hitbox, camera, oldCamPos);//Prevent player from walking through bounding boxes
+    for (auto& enemy : enemies) if (!stopEnemy)player.PreventBoundingBoxCollision(enemy.GetBoundingBox(), player.hitbox, camera, oldCamPos);//Prevent player from walking through bounding boxes
 
 
     //Player controls
     player.update(camera);
     player.HandleInput();
     player.closeToWallCheck(camera, world.GetWallBoundingBoxes());
-    if (crosshairColor.r == RED.r && player.justFired)
-    {
-        particleSystem.Instantiate(bloodParams);//Shooting
-    }
-    if (player.justFired && debugMode)
-    {
-		
-		particleSystem.Instantiate(muzzleParams);//Muzzle flash
-    }
-    particles();
+	//Player shooting
+	shooting();
+
+    
     //Enemy AI ()
-    if (!stopEnemy)enemy.Update();
-    if (!enemyMove)enemy.Move(player.position, navGrid, world.GetWallBoundingBoxes(), GetFrameTime());
-	//Particles
+    for (auto& enemy : enemies)
+    {
+        if (!stopEnemy)enemy.Update();
+        if (!enemyMove)enemy.Move(player.position, navGrid, world.GetWallBoundingBoxes(), GetFrameTime());
+    }
+    spawner.DespawnDeadEnemies();
+    //Particles
     particleSystem.UpdateAll(GetFrameTime());
+    particles();
     //Decals
     decalManager.Update(GetFrameTime());
 
-    BulletHitResult wallHit;
-    if(player.justFired) wallHit = player.getBulletCollision(camera, world.GetWallBoundingBoxes());
-    if (wallHit.hit && player.justFired)
-    {
-        Vector3 normal = EstimateNormalFromHit(wallHit.point, wallHit.box);
-        decalManager.AddDecal(wallHit.point, normal, 0.1f, &bulletHole);
-    }
 }
 
 
@@ -167,7 +161,7 @@ void Draw()
     BeginMode3D(camera);//Start of 3D Rendering
     //BeginBlendMode(BLEND_ALPHA);
 
-	//World drawing (walls, doors, floor, ceiling)
+    //World drawing (walls, doors, floor, ceiling)
     for (int y = 0; y < MAP_HEIGHT; y++)
     {
         for (int x = 0; x < MAP_WIDTH; x++)
@@ -202,20 +196,22 @@ void Draw()
     }
 
 
-	/// Draw entites /////>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    /// Draw entites /////>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     BeginShaderMode(alphaShader);
     debug();//Debugging visuals ( example - shows box collider outlines and raycasts)
-    
 
+	//Crosshair
+    DrawSphere(crosshair, 0.0002f, crosshairColor);
+	//Draws the Decals
     decalManager.Draw();
 
-    if(!stopEnemy)enemy.Draw(camera);//Draws the enemy, camera for billboarding
-	particleSystem.DrawAll(camera);//Draws all active particle effects
+    for (auto& enemy : enemies) if (!stopEnemy)enemy.Draw(camera);//Draws the enemy, camera for billboarding
+    particleSystem.DrawAll(camera);//Draws all active particle effects
 
 
     EndShaderMode();
     EndMode3D();
-	//Start of drawing//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    //Start of drawing//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
     //Draws the minimap
@@ -232,12 +228,12 @@ void Draw()
     auto currentAmmo = std::get<0>(ammo);
     auto maxAmmo = std::get<1>(ammo);
     gameUI.Draw(100, currentAmmo, maxAmmo);
-	gameUI.DrawStatic();
+    gameUI.DrawStatic();
 
-	if (paused) DrawTexture(gameUI.pauseTexture, 0 , 0 , WHITE);//Pause menu
-    
+    if (paused) DrawTexture(gameUI.pauseTexture, 0, 0, WHITE);//Pause menu
+
     //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-	EndDrawing(); //End of drawing
+    EndDrawing(); //End of drawing
 }
 
 
@@ -279,23 +275,61 @@ void particles()
     );
     spawnOffset.y -= 0.03f;             // slight downward offset
 
-    muzzleParams.position = Vector3Add(camera.position, spawnOffset);
+    shellCasingParams.position = Vector3Add(camera.position, spawnOffset);
 
-    muzzleParams.spawnCount = 1;
-    muzzleParams.minSpeed = 0.5f;
-    muzzleParams.maxSpeed = 1.0f;
-    muzzleParams.startColor = MAROON;
-    muzzleParams.endColor = MAROON;
-    muzzleParams.minLifetime = 2.0f;
-    muzzleParams.maxLifetime = 2.0f;
-    muzzleParams.gravity = { 0.0f, -3.0f, 0.0 };
-    muzzleParams.startSize = particleSize / 4;
-    muzzleParams.endSize = particleSize / 4;
-    muzzleParams.maxAngle = 180.0f;
-    muzzleParams.fadeAlpha = true;
-    muzzleParams.enableRandomRotation = true;
+    shellCasingParams.spawnCount = 1;
+    shellCasingParams.minSpeed = 0.5f;
+    shellCasingParams.maxSpeed = 1.0f;
+    shellCasingParams.startColor = MAROON;
+    shellCasingParams.endColor = MAROON;
+    shellCasingParams.minLifetime = 2.0f;
+    shellCasingParams.maxLifetime = 2.0f;
+    shellCasingParams.gravity = { 0.0f, -3.0f, 0.0 };
+    shellCasingParams.startSize = particleSize / 4;
+    shellCasingParams.endSize = particleSize / 4;
+    shellCasingParams.maxAngle = 180.0f;
+    shellCasingParams.fadeAlpha = true;
+    shellCasingParams.enableRandomRotation = true;
 
-    muzzleParams.texture = &shellCasing;
+    shellCasingParams.texture = &shellCasing;
+}
+
+void shooting()
+{
+	//Handles actual shooting
+    if (player.justFired)
+    {
+        ProcessBulletShot(camera,
+            world.GetWallBoundingBoxes(),   // wall colliders
+            world.GetDoorBoundingBoxes(),   // door colliders
+            enemies);                       // enemy vector
+
+    }
+
+
+	//Crosshair
+    // 
+    //Draws a circle crosshair on the first piece of a raycasted line to represent the crosshair
+    Vector3 rayDirection = Vector3Normalize(Vector3Subtract(camera.target, camera.position));
+    crosshair = Vector3Add(camera.position, Vector3Scale(rayDirection, 0.1f));
+
+    //Makes the crosshair red while aiming at enemies, also makes sure we know which enemy were looking at for collisions
+    Vector3 firstEnemyCollision = { 0, 0, 0 };
+    for (auto& enemy : enemies)
+    {
+        Vector3 col = player.calcBulletCollision(camera, enemy.hitbox);
+        //If a collision is detected, store it and break out of the loop.
+        if (chechVec3(col, { 0, 0, 0 }))
+        {
+            firstEnemyCollision = col;
+            break;
+        }
+    }
+    enemyCollision = firstEnemyCollision;
+
+    //If the player looks at an enemy, change the crosshair color to red unless there are obsticles in the way
+    if (IsEnemyInSight(camera, world.GetWallBoundingBoxes(), world.GetDoorBoundingBoxes(), enemies)) crosshairColor = RED;
+    else crosshairColor = WHITE;
 }
 
 
@@ -349,7 +383,7 @@ void debug()
 
         //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         /// Raycast hit points
-		Vector3 zero = { 0, 0, 0 };
+        Vector3 zero = { 0, 0, 0 };
 
         //Wall-bullet collision point
         for (int i = 0; i < world.GetWallBoundingBoxes().size(); i++)
@@ -367,23 +401,9 @@ void debug()
 
         //Draws a RED sphere on a shot walls (drawn over by blue hit detection for now)
         if (player.hitTarget && player.shot)DrawSphere(player.hitPoint, 0.1f, RED);
+
+        DrawSphere(enemyCollision, 0.1f, BLUE);
     }
-
-
-	//Draws a circle crosshair on the first piece of a raycasted line to represent the crosshair
-    Vector3 rayDirection = Vector3Normalize(Vector3Subtract(camera.target, camera.position));
-    Vector3 rayLinePoint = Vector3Add(camera.position, Vector3Scale(rayDirection, 0.1f));
-    DrawSphere(rayLinePoint, 0.0002f, crosshairColor);
-
-    Vector3 zero = { 0, 0, 0 };
-    //Draws a BLUE sphere on enemy hitboxes and makes the crosshair red while aiming at enemies
-	enemyCollision = player.calcBulletCollision(camera, enemy.hitbox);//returns 0,0,0 if no collision, otherwise returns the collision point
-    if (chechVec3(enemyCollision, zero))
-    {
-        //DrawSphere(enemyCollision, 0.1f, BLUE);
-        crosshairColor = RED;
-    }
-    else crosshairColor = WHITE;
 }
 
 
@@ -412,4 +432,3 @@ bool chechVec3(const Vector3& vec1, const Vector3& vec2)
     globals.DrawTexturedCylinder(floorTexture, pos2, 0.117, 0.35, WHITE);
 }
 */
-
