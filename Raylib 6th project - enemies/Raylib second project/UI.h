@@ -5,7 +5,8 @@
 
 #include <string>
 
-class UI {
+class UI 
+{
 public:
     UI();
     ~UI();

@@ -19,6 +19,7 @@ void EntitySpawner::Spawn(int entityID, Vector3 position)
         break;
     case 1:
         //e.g newEnemy.SetSpeed(5.0f);
+        //e.g newEnemy.SetHealth(200);
         break;
         //other varients
     }

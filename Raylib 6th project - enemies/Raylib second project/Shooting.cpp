@@ -16,7 +16,7 @@ void ProcessBulletShot(
     Camera& camera,
     const std::vector<BoundingBox>& wallBoxes,
     const std::vector<BoundingBox>& doorBoxes,
-    std::vector<Enemy>& enemies)
+    std::vector<Enemy>& enemies, bool &w1, bool &w2, bool &w3, bool &w4)
 {
 
 	//Stuff we do every time we shoot regardless of what we hit  (e.g. shell casings ejected from gun)
@@ -90,14 +90,20 @@ void ProcessBulletShot(
         //Computes surface normal based on the hit position and bounding box
         Vector3 normal = EstimateNormalFromHit(hitPoint, hitBox);
         //Adds decal to the surface
-        decalManager.AddDecal(hitPoint, normal, 0.1f, &bulletHole);
+        decalManager.AddDecal(hitPoint, normal, 0.02f, &bulletHole, 999);
     }
     else if (hitType == HIT_ENEMY)
     {
-		//Blood particle effect
-        particleSystem.Instantiate(bloodParams);
-		//Do damage to the enemy
-        if (hitEnemy != nullptr) hitEnemy->TakeDamage(10);
+        //Blood particle effect
+        for (int i = 0; i < 50; i++) particleSystem.Instantiate(bloodParams);
+        //Do damage to the enemy basd on weapon
+        if (hitEnemy != nullptr)
+        {
+            if (w1)  hitEnemy->TakeDamage(5);
+            if (w2)  hitEnemy->TakeDamage(7);
+            if (w3)  hitEnemy->TakeDamage(50);
+            if (w4)  hitEnemy->TakeDamage(5);
+        }
     }
 }
 

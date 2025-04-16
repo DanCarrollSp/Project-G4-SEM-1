@@ -58,9 +58,6 @@ void Player::HandleInput()
     else bobbingTime = 0.0f;
 
 
-    
-        // existing shooting logic
-
 
     //If the player has just fired, set the justFired bool to true
     // Increases the shot cooldown timer every frame

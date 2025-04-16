@@ -38,7 +38,7 @@ int main(void)
     //
     barrelTexture = LoadTexture("resources/barrel.png");
     //
-    bloodTexture = LoadTexture("resources/blood.png");
+    bloodTexture = LoadTexture("resources/bt80.png");
     //
     shellCasing = LoadTexture("resources/m.png");
     //
@@ -126,7 +126,7 @@ void Update()
     UpdateCamera(&camera, CAMERA_FIRST_PERSON);//Update the camera (movement)
     //Collision
     player.PreventBoundingBoxCollisions(world.GetWallBoundingBoxes(), player.hitbox, camera, oldCamPos);//Prevent player from walking through bounding boxes
-    for (auto& enemy : enemies) if (!stopEnemy)player.PreventBoundingBoxCollision(enemy.GetBoundingBox(), player.hitbox, camera, oldCamPos);//Prevent player from walking through bounding boxes
+    for (auto& enemy : enemies) if (enemy.IsAlive())player.PreventBoundingBoxCollision(enemy.GetBoundingBox(), player.hitbox, camera, oldCamPos);//Prevent player from walking through bounding boxes
 
 
     //Player controls
@@ -141,9 +141,19 @@ void Update()
     for (auto& enemy : enemies)
     {
         if (!stopEnemy)enemy.Update();
-        if (!enemyMove)enemy.Move(player.position, navGrid, world.GetWallBoundingBoxes(), GetFrameTime());
+
+        if (enemy.IsAlive())
+        {
+            std::vector<Enemy*> otherEnemies;
+            for (auto& other : enemies)
+            {
+                if (&enemy != &other && other.IsAlive()) // Don't compare with self or dead enemies
+                    otherEnemies.push_back(&other);
+            }
+            if (!enemyMove)enemy.Move(player.position, navGrid, world.GetWallBoundingBoxes(), otherEnemies, GetFrameTime());
+        }
     }
-    spawner.DespawnDeadEnemies();
+    //spawner.DespawnDeadEnemies();
     //Particles
     particleSystem.UpdateAll(GetFrameTime());
     particles();
@@ -254,7 +264,7 @@ void particles()
     bloodParams.endColor = MAROON;
     bloodParams.minLifetime = 2.0f;
     bloodParams.maxLifetime = 2.0f;
-    bloodParams.gravity = { 0.0f, -3.5f, 0.0 };
+    bloodParams.gravity = { 0.0f, -6.5f, 0.0 };
     bloodParams.startSize = particleSize;
     bloodParams.endSize = particleSize;
     bloodParams.maxAngle = 180.0f;
@@ -302,7 +312,7 @@ void shooting()
         ProcessBulletShot(camera,
             world.GetWallBoundingBoxes(),   // wall colliders
             world.GetDoorBoundingBoxes(),   // door colliders
-            enemies);                       // enemy vector
+            enemies, player.pistolEquipped, player.akEquipped, player.shotgunEquipped, player.smgEquipped);                       // enemy vector
 
     }
 

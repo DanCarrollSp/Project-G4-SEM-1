@@ -60,7 +60,7 @@ void Enemy::Draw(Camera camera)
 {
 
     DrawBillboard(camera, currentTexture, position, 1.0f, WHITE);
-    if (!debug) DrawBoundingBox(hitbox, RED);
+    //if (!debug) DrawBoundingBox(hitbox, RED);
 }
 
 
@@ -75,11 +75,16 @@ void Enemy::animate()
         walkTextures[1] = LoadTexture("resources/enemies/D2.png");
         walkTextures[2] = LoadTexture("resources/enemies/D3.png");
         walkTextures[3] = LoadTexture("resources/enemies/D4.png");
+        hitTexture = LoadTexture("resources/enemies/D5.png");
 
-        // Optionally apply texture filtering here:
-        for (int i = 0; i < 4; i++) {
-            SetTextureFilter(walkTextures[i], TEXTURE_FILTER_BILINEAR);
-        }
+        deadTextures[0] = LoadTexture("resources/enemies/DD1.png");
+        deadTextures[1] = LoadTexture("resources/enemies/DD2.png");
+        deadTextures[2] = LoadTexture("resources/enemies/DD3.png");
+        deadTextures[3] = LoadTexture("resources/enemies/DD4.png");
+        deadTextures[4] = LoadTexture("resources/enemies/DD5.png");
+        deadTextures[5] = LoadTexture("resources/enemies/DD6.png");
+
+
         texturesLoaded = true;
 
         // Set initial texture to idle frame
@@ -87,9 +92,48 @@ void Enemy::animate()
     }
 
     double currentTime = GetTime();
-    // Determine if the enemy has moved (using a very small threshold)
+
+
+
+
+    if (!isAlive)
+    {
+        if (onDeath == false)
+        {
+            frameIndex = 0;
+
+			onDeath = true; // Set death state
+        }
+
+        // Play death animation once
+        if (currentTime - lastAnimationTime >= 0.125) // Slower death frame rate
+        {
+            lastAnimationTime = currentTime;
+            if (frameIndex < 5) frameIndex++; // Only play once
+            currentTexture = deadTextures[frameIndex];
+        }
+        return; // Skip further animation updates
+    }
+
+
+
+    // Determine if the enemy has moved (very small threshold)
     float movementThreshold = 0.001f;
     bool isMoving = Vector3Distance(position, lastPosition) > movementThreshold;
+
+    // Handle hit animation override
+    if (hit)
+    {
+        currentTexture = hitTexture; // D5
+        if (currentTime - hitTime >= hitDuration)
+        {
+            hit = false; // Reset hit state after duration
+        }
+
+        lastPosition = position; // Still update last position
+        return; // Skip rest of animation logic while hit is active
+    }
+	else speed = 3.0f; // Reset speed if not hit
 
     if (isMoving)
     {
@@ -103,7 +147,7 @@ void Enemy::animate()
     }
     else
     {
-        // If the enemy isn’t moving, revert to the idle (first) frame
+        // If the enemy isnt moving, revert to the idle (first) frame
         frameIndex = 0;
         currentTexture = walkTextures[0];
     }
@@ -127,7 +171,7 @@ Vector3 Enemy::collision(Ray ray)
     return {0,0,0};
 }
 
-void Enemy::Move(Vector3 target, const std::vector<std::vector<bool>>& navGrid, const std::vector<BoundingBox>& walls, float deltaTime)
+void Enemy::Move(Vector3 target, const std::vector<std::vector<bool>>& navGrid, const std::vector<BoundingBox>& walls, const std::vector<Enemy*>& allEnemies, float deltaTime)
 {
 
     //Only move if not at the target position
@@ -183,7 +227,7 @@ void Enemy::Move(Vector3 target, const std::vector<std::vector<bool>>& navGrid, 
         currentPathIndex = 0;
     }
 
-	vectorCollision(walls);
+	vectorCollision(walls, allEnemies);
 }
 
 
@@ -196,7 +240,7 @@ void Enemy::RecalculatePath(Vector3 target, const std::vector<std::vector<bool>>
 }
 
 
-void Enemy::vectorCollision(const std::vector<BoundingBox>& walls)
+void Enemy::vectorCollision(const std::vector<BoundingBox>& walls, const std::vector<Enemy*>& otherEnemies)
 {
     if (!isAlive) return;
 
@@ -229,6 +273,29 @@ void Enemy::vectorCollision(const std::vector<BoundingBox>& walls)
             hitbox.max = { position.x + hitBoxWidth, position.y + hitBoxHeight, position.z + hitBoxWidth };
         }
     }
+
+    for (auto* other : otherEnemies)
+    {
+        if (other == this || !other->IsAlive()) continue;
+
+        BoundingBox otherBox = other->GetBoundingBox();
+        if (CheckCollisionBoxes(hitbox, otherBox))
+        {
+            // Push both enemies apart equally
+            Vector3 dir = Vector3Subtract(position, other->GetPosition());
+            if (Vector3Length(dir) == 0) dir = { 0.01f, 0, 0 }; // Avoid div by 0
+
+            dir = Vector3Normalize(dir);
+            float pushAmount = 0.02f; // How much to push apart
+
+            position = Vector3Add(position, Vector3Scale(dir, pushAmount));
+            other->SetPosition(Vector3Subtract(other->GetPosition(), Vector3Scale(dir, pushAmount)));
+
+            // Update bounding box
+            hitbox.min = { position.x - hitBoxWidth, position.y - hitBoxHeight, position.z - hitBoxWidth };
+            hitbox.max = { position.x + hitBoxWidth, position.y + hitBoxHeight, position.z + hitBoxWidth };
+        }
+    }
 }
 
 void Enemy::TakeDamage(int amount)
@@ -238,6 +305,16 @@ void Enemy::TakeDamage(int amount)
     {
         health = 0;
         isAlive = false;
-        // You can play a death animation or sound here
+        //Death logic
+    }
+    else
+    {
+        //Stun
+        if (amount > 20)
+        {
+            hit = true;
+            hitTime = GetTime();
+            speed = 0;
+        }
     }
 }

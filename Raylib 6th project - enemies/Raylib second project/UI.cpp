@@ -1,15 +1,18 @@
 #include "UI.h"
 
-UI::UI() {
+UI::UI() 
+{
     screenWidth = GetScreenWidth();
     screenHeight = GetScreenHeight();
 }
 
-UI::~UI() {
+UI::~UI() 
+{
     UnloadAssets();
 }
 
-void UI::LoadAssets(const std::string& fontPath, const std::string& fontSmallPath, const std::string& akImagePath) {
+void UI::LoadAssets(const std::string& fontPath, const std::string& fontSmallPath, const std::string& akImagePath) 
+{
     mainFont = LoadFont(fontPath.c_str());
     smallFont = LoadFont(fontSmallPath.c_str());
     akTexture = LoadTexture(akImagePath.c_str());
@@ -21,13 +24,15 @@ void UI::LoadAssets(const std::string& fontPath, const std::string& fontSmallPat
 	pauseTexture = LoadTexture("resources/paused.png");
 }
 
-void UI::UnloadAssets() {
+void UI::UnloadAssets() 
+{
     UnloadFont(mainFont);
     UnloadFont(smallFont);
     UnloadTexture(akTexture);
 }
 
-void UI::Draw(int health, int currentAmmo, int maxAmmo) {
+void UI::Draw(int health, int currentAmmo, int maxAmmo) 
+{
     // --- HEALTH (top left) with outline ---
     std::string healthText = std::to_string(health) + "%";
     Vector2 healthPos = { 50, 100 };

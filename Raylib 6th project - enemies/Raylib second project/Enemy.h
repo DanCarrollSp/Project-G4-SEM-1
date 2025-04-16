@@ -20,12 +20,12 @@ public:
 
 	//Collision detection
 	Vector3 collision(Ray ray);//Returns collision point if a ray hits the enemy (used for bullets)
-	void vectorCollision(const std::vector<BoundingBox>& walls);//Gives enemy phycial collisions with walls
+	void vectorCollision(const std::vector<BoundingBox>& walls, const std::vector<Enemy*>& otherEnemies);//Gives enemy phycial collisions with walls
     BoundingBox hitbox;
     BoundingBox GetBoundingBox() const { return hitbox; }
 
     //Movement and path finding
-    void Move(Vector3 target, const std::vector<std::vector<bool>>& navGrid, const std::vector<BoundingBox>& walls, float deltaTime);
+    void Move(Vector3 target, const std::vector<std::vector<bool>>& navGrid, const std::vector<BoundingBox>& walls, const std::vector<Enemy*>& allEnemies, float deltaTime);
     void RecalculatePath(Vector3 target, const std::vector<std::vector<bool>>& navGrid);
     //Path data
     std::vector<Vector3> gridPath;//The calculated path to target
@@ -39,7 +39,7 @@ public:
 	Vector3 GetPosition() const { return position; }
     bool debug = false;
 
-    // New methods for health
+    //Health
     void TakeDamage(int amount);
     bool IsAlive() const { return isAlive; }
 
@@ -63,11 +63,17 @@ private:
     //Textures and animations
     Texture2D currentTexture;
     Texture2D walkTextures[4];
+    Texture2D hitTexture;
+    Texture2D deadTextures[6];
     bool texturesLoaded = false;
 
     // Health & alive status
     int health;
+    bool hit = false;
+    double hitTime = 0.0;
+    double hitDuration = 0.25;
     bool isAlive;
+    bool onDeath = false;
 };
 
 #endif // ENEMY_H

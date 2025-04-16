@@ -24,15 +24,16 @@ enum HitType
     HIT_ENEMY
 };
 
-// Processes a bullet shot: casts a ray from the camera, if something is hit:
+//Processes a bullet shot: casts a ray from the camera, if something is hit:
 //applies the proper effect (adds a decal, spawns blood particles, and/or damages an enemy)
+//a;so updates crosshair and does different damage based on what weapon (w1,w2...) is used
 void ProcessBulletShot(Camera& camera,
     const std::vector<BoundingBox>& wallBoxes,
     const std::vector<BoundingBox>& doorBoxes,
-    std::vector<Enemy>& enemies);
+    std::vector<Enemy>& enemies, bool& w1, bool& w2, bool& w3, bool& w4);
 
 
-//Stuff that always happens when you shoot, like ejecting a shell casings
+//Stuff that always happens when you shoot, like ejecting shell casings
 void alwaysOnShot();
 
 
