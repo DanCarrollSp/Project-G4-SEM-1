@@ -31,12 +31,12 @@ public:
     Texture2D idleHandTexture;
 
     //Hand
-	Vector2 handPos = { 0, 0 };
-	//Gun textures
-	Texture2D pistolTexture;
-	Texture2D akTexture;
-	Texture2D shotgunTexture;
-	Texture2D smgTexture;
+    Vector2 handPos = { 0, 0 };
+    //Gun textures
+    Texture2D pistolTexture;
+    Texture2D akTexture;
+    Texture2D shotgunTexture;
+    Texture2D smgTexture;
     //Ammo
     void subtractAmmo();
     void reload();
@@ -65,29 +65,29 @@ public:
 
 
     //Weapons
-	void unequipAll();
+    void unequipAll();
     bool pistolEquipped = true;
-	bool akEquipped = false;
-	bool shotgunEquipped = false;
-	bool smgEquipped = false;
+    bool akEquipped = false;
+    bool shotgunEquipped = false;
+    bool smgEquipped = false;
     //
 
-    
 
-	//Fire rates
-	void setFireRate();
-	float currentFireRate;
+
+    //Fire rates
+    void setFireRate();
+    float currentFireRate;
     bool justFired = false;
-	float pistolFireRate = 0.5f;
-	float akFireRate = 0.15f;
-	float shotgunFireRate = 1.0f;
-	float smgFireRate = 0.1f;
-	//Shot sound
-	void playSound();
-	Sound pistolShot;
-	Sound akShot;
-	Sound shotgunShot;
-	Sound smgShot;
+    float pistolFireRate = 0.5f;
+    float akFireRate = 0.15f;
+    float shotgunFireRate = 1.0f;
+    float smgFireRate = 0.1f;
+    //Shot sound
+    void playSound();
+    Sound pistolShot;
+    Sound akShot;
+    Sound shotgunShot;
+    Sound smgShot;
 
 
     //Bobbing variables
@@ -107,18 +107,18 @@ public:
     //Player world position
     int collTestCellX;
     int collTestCellY;
-	Vector3 position = { 10, 0.5f, 10 };
+    Vector3 position = { 10, 0.5f, 10 };
     //Player hitbox
     BoundingBox hitbox;
     float hitBoxWidth = 0.23f;
-    float hitBoxHeight = 0.5f;
-	
+    float hitBoxHeight = 0.4f;
+
 
     //Function to handle bounding box collision and restrict movement
     void PreventBoundingBoxCollisions(const std::vector<BoundingBox>& obstacles, BoundingBox& playerBox, Camera& camera, Vector3 oldCamPos);
     void PreventBoundingBoxCollision(const BoundingBox obstacle, BoundingBox& playerBox, Camera& camera, Vector3 oldCamPos);
     //Function to handle close to wall animation just before movement is restricted
-	void closeToWallCheck(Camera& camera, const std::vector<BoundingBox>& walls);
+    void closeToWallCheck(Camera& camera, const std::vector<BoundingBox>& walls);
 
 
 public:
@@ -132,10 +132,28 @@ public:
     void HandleInput();//Function handles all player controlls for animations.
     void Animate(int screenWidth, int screenHeight, Camera& camera, Vector3 mapPosition);//Draws the players hand on the screen (function called in main) 
 
-	Vector3 calcBulletCollision(Camera& camera, BoundingBox boxCollider);//Returns position of closest hit bounding box
+    Vector3 calcBulletCollision(Camera& camera, BoundingBox boxCollider);//Returns position of closest hit bounding box
     BulletHitResult getBulletCollision(Camera& camera, const std::vector<BoundingBox>& boxes);//Returns position of closest hit bounding box
 
     //Players shooting/bullets
     Vector3 hitPoint = { 0 };
     bool hitTarget = false;
+
+
+
+    /// Physcics (gravity, ground detection and stepping up)
+    //Gravity vars
+    float velocityY = 0.0f;//Current vertical velocity
+    bool onGround = false;//True if feet are supported this frame
+    float gravitySpeed = -20.0f;//Gravity speed buildup until it reaches max speed
+    float gravityMax = -25.0f;//Clamped max fall speed
+	float threshold = 0.02f;//stops oscillation when close to ground and not in a perfect position
+    bool doGravity = false;//Dont activate gravity until after first loop (must init without it to avoid issues)
+
+	//Funcs
+    void ApplyGravity(Camera& cam, BoundingBox& playerBox, const std::vector<BoundingBox>& obstacles);
+    //If the player walks into a slight step, move them up onto it (stairs, slopes)
+    bool TryStepUp(float deltaY, Camera& camera, BoundingBox& playerBox, const std::vector<BoundingBox>& obstacles);
+    //Ground detection, prevents player from falling through the floor
+    void GroundCollisions(Camera& camera, BoundingBox& playerBox, const std::vector<BoundingBox>& obstacles, float maxClimb = 3.0f, float stepThreshold = 0.01f);
 };

@@ -4,9 +4,8 @@ Globals::Globals()
 {
 }
 
-//------------------------------------------------------------------------------------
-// Custom Functions Definition
-//------------------------------------------------------------------------------------
+
+
 // Draw cube textured
 // NOTE: Cube position is the center position
 void Globals::DrawCubeTexture(Texture2D texture, Vector3 position, float width, float height, float length, Color color)
@@ -70,6 +69,9 @@ void Globals::DrawCubeTexture(Texture2D texture, Vector3 position, float width, 
     rlSetTexture(0);
 }
 
+
+
+
 void Globals::DrawTexturedCylinder(Texture2D texture, Vector3 position, float radius, float height, Color color)
 {
     cylinderMesh = GenMeshCylinder(radius, height, 30);
@@ -81,4 +83,44 @@ void Globals::DrawTexturedCylinder(Texture2D texture, Vector3 position, float ra
     //Draw the textured cylinder
     DrawModel(cylinderModel, position, 1.0f, color);
     UnloadModel(cylinderModel);
+}
+
+
+
+
+void Globals::DrawStair(const Vector3& base, int dir, Texture2D tex)
+{
+	//Heights of each of the individual cubes making up the steps of the stairs
+    const float stepHeights[4] = { 0.25f,0.50f,0.75f,1.00f };
+
+    for (int i = 0; i < 4; ++i)
+    {
+		//Vars for the position and size of the smaller cubes
+        Vector3 pos = base;
+        Vector3 size = { 1, stepHeights[i], 0.25f };
+
+
+        //Pos and size of each of the steps
+        switch (dir)
+        {
+        case 0: pos.z += (i - 1.5f) * 0.25f; break; // N North
+        case 1: pos.z += (1.5f - i) * 0.25f; break; // S South
+        case 2: pos.x += (1.5f - i) * 0.25f;  size = { 0.25f,stepHeights[i],1 }; break; // E East
+        case 3: pos.x += (i - 1.5f) * 0.25f;  size = { 0.25f,stepHeights[i],1 }; break; // W West
+        }
+
+        //Now shift it up by half of the height so that the bottom of each step is actually on the floor
+        pos.y = floorf(base.y) + stepHeights[i] * 0.5f;
+
+        //Draw the steps/cubes
+        DrawCubeTexture(tex, pos, size.x, size.y, size.z, WHITE);
+    }
+}
+
+
+
+//Returns if two colors are equal
+bool ColorEq(Color a, Color b)
+{
+    return a.r == b.r && a.g == b.g && a.b == b.b;
 }

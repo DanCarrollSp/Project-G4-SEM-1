@@ -241,9 +241,7 @@ void Player::Animate(int screenWidth, int screenHeight, Camera& camera, Vector3 
 	else if (shotgunEquipped) handTexture = shotgunTexture;
 	else if (smgEquipped) handTexture = smgTexture;
 
-    //20 == map width and height values
-    float scale = globals.miniMapScale / 2;
-    DrawCircle(screenWidth - MAP_WIDTH * scale - MAP_HEIGHT + position.x * scale, (MAP_WIDTH + 100) + position.z * scale, scale, GREEN);//Draw players position on minimap
+
 
 	//Draws the players hand and updates its animations
     if (isReloading)
@@ -310,6 +308,11 @@ void Player::playSound()
 
 void Player::PreventBoundingBoxCollisions(const std::vector<BoundingBox>& obstacles, BoundingBox& playerBox, Camera& camera, Vector3 oldCamPos)
 {
+    //Applies gravity and checks ground collisions
+    if (doGravity)ApplyGravity(camera, playerBox, obstacles);
+    GroundCollisions(camera, playerBox, obstacles);
+    doGravity = true;
+
     //Position the camera wants to be after moving
     Vector3 desiredPos = camera.position;
     //Calculates how far the camera moved in total
@@ -328,14 +331,25 @@ void Player::PreventBoundingBoxCollisions(const std::vector<BoundingBox>& obstac
     {
         if (CheckCollisionBoxes(playerBox, box))
         {
-            //Collided on X axis  --  revert X movement
-            camera.position.x = oldCamPos.x;
+            //Check if its climbable first
+            float deltaY = box.max.y - playerBox.min.y;
 
-            //Update bounding box back to old X pos
-            playerBox.min.x = camera.position.x - hitBoxWidth;
-            playerBox.max.x = camera.position.x + hitBoxWidth;
-            break;
+			//Max step up height
+            const float maxStep = 0.6f;
+
+            if (deltaY > 0.0f && deltaY <= maxStep && TryStepUp(deltaY + 0.01f, camera, playerBox, obstacles))
+            {
+				//Stepped up succesfully, keep the new X and Y pos
+            }
+            else
+            {
+                //Cant step over so just collide with it face first
+                camera.position.x = oldCamPos.x;
+                playerBox.min.x = camera.position.x - hitBoxWidth;
+                playerBox.max.x = camera.position.x + hitBoxWidth;
+            }
         }
+
     }
 
     /// /// /// Applies movement along the Z axis /// /// ///
@@ -504,3 +518,131 @@ void Player::updateReload()
     }
 }
 
+
+
+/// ///////////////////////////////////////////////////////////////////////////////////////////
+//Physics for the player (ground collisions, gravity, stepping up)
+
+//Step up onto colliders if they are short enough (Stairs etc)
+bool Player::TryStepUp(float deltaY, Camera& camera, BoundingBox& playerBox, const std::vector<BoundingBox>& obstacles)
+{
+	//Camera and collider positions
+    camera.position.y += deltaY;
+    playerBox.min.y += deltaY;
+    playerBox.max.y += deltaY;
+
+    for (const auto& obstacle : obstacles)
+        if (CheckCollisionBoxes(playerBox, obstacle))
+        {
+            //Dont allow step up
+            camera.position.y -= deltaY;
+            playerBox.min.y -= deltaY;
+            playerBox.max.y -= deltaY;
+            return false;
+        }
+
+	//Low enough step up
+    return true;
+}
+
+void Player::GroundCollisions(Camera& camera, BoundingBox& playerBox, const std::vector<BoundingBox>& obstacles, float maxClimb, float stepThreshold)
+{
+    //Init climbed as 0 as no climbing has been decided yet
+    float climbed = 0.0f;
+
+    //Loops until no collision or we exceeded the climb height allowed
+    while (climbed < maxClimb)
+    {
+        //Finds the smallest positive lift that would place the playerBox exactly on top of the collider
+        float minDy = FLT_MAX;
+        for (const auto& box : obstacles)
+        {
+            //If we are colliding with a box, check if its height is low enough to see if we can step up onto it
+            if (CheckCollisionBoxes(playerBox, box))
+            {
+                float dy = box.max.y - playerBox.min.y;
+                if (dy > 0.0f && dy < minDy) minDy = dy;
+            }
+        }
+
+
+        if (minDy == FLT_MAX) break;//No overlapping of player box and obstacle boxes = no climbing
+		if (!TryStepUp(minDy + stepThreshold, camera, playerBox, obstacles)) break;//Step up failed = no climbing
+
+        climbed += minDy + stepThreshold;//Passed checks, climb
+    }
+
+	//Once climbing is succesful, reset velocity as we are now on the ground
+    if (climbed > 0.0f)
+    {
+		velocityY = 0.0f;//Stop any falling
+        onGround = true;//Stop updating any falling
+    }
+}
+
+//Applies gravity to the player if they are not on the ground in the form of downward velocity and resolves floor collisions
+// Applies gravity to the player by increasing downward velocity and resolving collisions
+void Player::ApplyGravity(Camera& camera, BoundingBox& playerBounds, const std::vector<BoundingBox>& obstacles)
+{
+    //Time elapsed since last frame
+    float deltaTime = GetFrameTime();
+
+    //Accumulate gravity acceleration
+    velocityY += gravitySpeed * deltaTime;
+    //Clamp to max gravity speed
+    if (velocityY < gravityMax) velocityY = gravityMax;
+
+
+    //Gets total downward movement for this frame
+    float totalFallDistance = velocityY * deltaTime;
+    //Max downward movement allowed before a check to avoid tunneling through thin obstacles
+    const float checkFallStepAmount = -0.45f;
+    //Remaining distance to sweep after that step
+    float remainingDistance = totalFallDistance;
+
+
+    //Assume we are falling until collision says were not
+    onGround = false;
+
+
+    //Sweep down in small increments until weve moved full distance or landed (increments of checkFallStepAmount)
+    while (remainingDistance < 0.0f)
+    {
+        //Step down either the max allowed per loop, or whatevers left of the full distance to fall remaining
+        float stepDistance = std::max(remainingDistance, checkFallStepAmount);
+
+        //Move camera and bounding box down
+        camera.position.y += stepDistance;
+        playerBounds.min.y += stepDistance;
+        playerBounds.max.y += stepDistance;
+
+		//Take away how much weve moved down from how we have left to move down
+        remainingDistance -= stepDistance;
+
+
+        //Checks for collision with any obstacle
+        bool hasLanded = false;//assume we havent landed until we do the calc
+        for (const auto& obstacle : obstacles)
+        {
+			//If were not colliding with the obstacle, skip to the next one
+            if (!CheckCollisionBoxes(playerBounds, obstacle)) continue;
+
+            //Snap player to the top of that obstacle
+            float obstacleTopY = obstacle.max.y;
+            float footOffset = hitBoxHeight + threshold;
+            //
+            camera.position.y = obstacleTopY + footOffset;
+            playerBounds.min.y = obstacleTopY + threshold;
+            playerBounds.max.y = obstacleTopY + footOffset * 2;
+
+            //Stop falling
+            velocityY = 0.0f;
+            onGround = true;
+            hasLanded = true;
+            break;
+        }
+
+        //If weve landed, exit the loop
+        if (hasLanded) break;
+    }
+}

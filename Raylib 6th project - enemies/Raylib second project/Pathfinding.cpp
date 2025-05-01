@@ -178,61 +178,91 @@ std::vector<Vector3> AStarPath(Vector3 startPos, Vector3 goalPos, const std::vec
 
 
 
-//-----------------------------------------------------------------------------
-// Path Smoothing Functions (Line-of-Sight "String Pulling")
-//-----------------------------------------------------------------------------
+/// //////////////////////////////////////////////////////////////////////
+//Path Smoothing using line of sight
 
-// Checks if a straight line from start to end is collision-free using Bresenham's algorithm.
-bool LineOfSight(const Vector3& start, const Vector3& end, const std::vector<std::vector<bool>>& grid) {
-    int x0 = (int)floorf(start.x);
-    int y0 = (int)floorf(start.z);
-    int x1 = (int)floorf(end.x);
-    int y1 = (int)floorf(end.z);
+//Checks if a straight line from the start to the end is collision free (Bresenhams algorithm)
+bool LineOfSight( const Vector3& startPosition, const Vector3& endPosition, const std::vector<std::vector<bool>>& collisionGrid)
+{
+    //Converts world coordinates to grid cell indexs
+    int startX = static_cast<int>(floorf(startPosition.x));
+    int startY = static_cast<int>(floorf(startPosition.z));
+    int endX = static_cast<int>(floorf(endPosition.x));
+    int endY = static_cast<int>(floorf(endPosition.z));
 
-    int dx = abs(x1 - x0);
-    int dy = abs(y1 - y0);
-    int sx = (x0 < x1) ? 1 : -1;
-    int sy = (y0 < y1) ? 1 : -1;
-    int err = dx - dy;
+    //Get deltas
+    int deltaX = abs(endX - startX);
+    int deltaY = abs(endY - startY);
 
-    while (true) {
-        if (!grid[y0][x0])
-            return false;
-        if (x0 == x1 && y0 == y1)
-            break;
-        int e2 = 2 * err;
-        if (e2 > -dy) {
-            err -= dy;
-            x0 += sx;
+    //Get step direction for X and Y
+    int stepX = (startX < endX) ? 1 : -1;
+    int stepY = (startY < endY) ? 1 : -1;
+
+	//Initialize error term for Bresenhams algorithm
+    int errorTerm = deltaX - deltaY;
+
+    //Traverse the grid
+    while (true)
+    {
+        //If this grid cell is blocked, no line of sight
+        if (!collisionGrid[startY][startX]) return false;
+
+        //If weve reached the target cell, line of sight is clear
+        if (startX == endX && startY == endY) break;
+
+        //Double the error term for decision making (simpler and better than dealing with floats)
+        int doubleError = 2 * errorTerm;
+
+        //Move in X direction if needed
+        if (doubleError > -deltaY)
+        {
+            errorTerm -= deltaY;
+            startX += stepX;
         }
-        if (e2 < dx) {
-            err += dx;
-            y0 += sy;
+        //Move in Y direction if needed
+        if (doubleError < deltaX)
+        {
+            errorTerm += deltaX;
+            startY += stepY;
         }
     }
+
+	//No obsticles were hit, return true (We have line of sight)
     return true;
 }
 
-// Smooths the computed path by removing unnecessary intermediate waypoints.
-std::vector<Vector3> SmoothPath(const std::vector<Vector3>& path, const std::vector<std::vector<bool>>& grid) {
-    if (path.empty())
-        return path;
 
-    std::vector<Vector3> newPath;
-    newPath.push_back(path.front());
+//Smooths the path by removing unnecessary intermediate waypoints
+std::vector<Vector3> SmoothPath(const std::vector<Vector3>& originalPath, const std::vector<std::vector<bool>>& collisionGrid)
+{
+    //If there are no waypoints, return immediately
+    if (originalPath.empty()) return originalPath;
 
-    int currentIndex = 0;
-    while (currentIndex < (int)path.size() - 1) {
-        int nextIndex = (int)path.size() - 1;
-        // Look for the farthest point reachable in a straight line.
-        for (int i = (int)path.size() - 1; i > currentIndex; i--) {
-            if (LineOfSight(path[currentIndex], path[i], grid)) {
-                nextIndex = i;
+    std::vector<Vector3> smoothedPath;
+    smoothedPath.push_back(originalPath.front());//Starting point
+
+    int currentWaypointIndex = 0;
+    const int totalWaypoints = static_cast<int>(originalPath.size());
+
+    while (currentWaypointIndex < totalWaypoints - 1)
+    {
+        //Start by assuming the farthest reachable waypoint is the end of the path
+        int furthestReachableIndex = totalWaypoints - 1;
+
+        //Search backwards from the end to find the farthest directly reachable point
+        for (int testIndex = totalWaypoints - 1; testIndex > currentWaypointIndex; --testIndex)
+        {
+            if (LineOfSight(originalPath[currentWaypointIndex], originalPath[testIndex], collisionGrid))
+            {
+                furthestReachableIndex = testIndex;
                 break;
             }
         }
-        newPath.push_back(path[nextIndex]);
-        currentIndex = nextIndex;
+
+        //Add that reachable waypoint to the smoothed path
+        smoothedPath.push_back(originalPath[furthestReachableIndex]);
+        currentWaypointIndex = furthestReachableIndex;
     }
-    return newPath;
+
+    return smoothedPath;
 }

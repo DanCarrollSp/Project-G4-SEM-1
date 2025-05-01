@@ -1,19 +1,43 @@
-#include "Main.h"
-#include "rlgl.h"
-#include "Scenes.h"
+﻿#include "Main.h"
 
 
-Vector3 enemyCollision;
+//Texture assignments
+void InitTextures()
+{
+	//Tile textures
+    floorTexture = LoadTexture("resources/World/floorTexture.png");
+    ceilingTexture = LoadTexture("resources/World/ceilingTexture.png");
+    wallTexture = LoadTexture("resources/World/wallTexture.png");
+    doorTexture = LoadTexture("resources/World/door.png");
+
+    //Particle textures
+    bloodTexture = LoadTexture("resources/bt80.png");
+    shellCasing = LoadTexture("resources/m.png");
+
+	//Model textures
+    barrelTexture = LoadTexture("resources/barrel.png");
+
+	//Decal textures
+    bulletHole = LoadTexture("resources/bulletHole.png");
+
+	//UI textures
+    gameUI.LoadAssets("resources/fonts/Blood.ttf", "resources/fonts/Ammo.otf", "resources/images/ak_icon.png");
+}
+
+
 
 int main(void)
 {
-    //Creates the fullscreen window
-    InitWindow(screenWidth, screenHeight, "Rouge Like 2.5D Shooter");
+    //Creates the fullscreen window and sets target fps
+    InitWindow(screenWidth, screenHeight, "Soul Chain");
     ToggleFullscreen();
+    SetTargetFPS(60);
+    InitAudioDevice();
+
+
 
     //Sets the mouse position to the center of the screen on start (stops game starting with you looking at the ceiling)
     SetMousePosition(screenWidth / 2, screenHeight / 2);
-
     //Sets up raylibs perspective camera
     camera.position = Vector3{ 10, 0.6f, 10 };//Camera pos
     camera.up = Vector3{ 0.0f, 1.0f, 0.0f };//Camera orientation
@@ -21,48 +45,42 @@ int main(void)
     camera.projection = CAMERA_PERSPECTIVE;
 
 
+
+    //Load textures
+    InitTextures();
+
+
+
     //Seed random time for map generation
     srand((unsigned int)time(NULL));
     //Generate random map
-    Image imMap = world.GenerateProceduralMap(MAP_WIDTH, MAP_HEIGHT);
-    miniMap = LoadTextureFromImage(imMap);//Minimap
-
+    Image imMap = world.GenerateProceduralMap(MAP_WIDTH, MAP_LENGHT);
+    //miniMap = LoadTextureFromImage(imMap);//Minimap
+    //Map creation using walls, doors, etc
+    mapPixels = LoadImageColors(imMap);//Color map, converts 'image' pixel color data into map data for collisions (black = passavble, else = not passable)
     //Generate nav gird
     navGrid = world.CreateNavigationGrid();
 
-    //Texture assignments
-    floorTexture = LoadTexture("resources/floorTexture.png");
-    ceilingTexture = LoadTexture("resources/ceilingTexture.png");
-    wallTexture = LoadTexture("resources/wallTexture.png");
-    doorTexture = LoadTexture("resources/door.png");
-    //
-    barrelTexture = LoadTexture("resources/barrel.png");
-    //
-    bloodTexture = LoadTexture("resources/bt80.png");
-    //
-    shellCasing = LoadTexture("resources/m.png");
-    //
-    bulletHole = LoadTexture("resources/bulletHole.png");
-
-    //Map creation using walls, doors, etc
-    mapPixels = LoadImageColors(imMap);//Color map, converts 'image' pixel color data into map data for collisions (black = passavble, else = not passable)
+	
 
     //Shaders
     alphaShader = LoadShader(NULL, "shaders/alpha.fs");
     //Particle setup
     particles();
 
-    InitAudioDevice();
+
+    
+    //Temp
+    spawner.Spawn(0, { 5.0f, 0.5f, 5.0f });
+    spawner.Spawn(0, { 2.0f, 0.5f, 10.0f });
+    spawner.Spawn(0, { 8.0f, 0.5f, 10.0f });
     spawner.Spawn(0, { 5.0f, 0.5f, 5.0f });
     spawner.Spawn(0, { 2.0f, 0.5f, 10.0f });
     spawner.Spawn(0, { 8.0f, 0.5f, 10.0f });
 
-    //Position of the map in the game world space
-    mapPosition = { 0, 0, 0 };
-    //
-    SetTargetFPS(60);
 
 
+    //Program Loop
     while (!WindowShouldClose())
     {
 
@@ -72,6 +90,9 @@ int main(void)
             scenes.Update();
             scenes.Draw(camera);
         }
+        // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
 
         //Particles >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         if (scenes.sceneParticleEngine)
@@ -83,6 +104,35 @@ int main(void)
             particleSystem.UpdateAll(GetFrameTime());
             particleSystem.DrawAll(camera);
         }
+        // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
+
+        //WorldEditor >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        if (scenes.sceneMapMaker)
+        {
+			//Inits the world editor once
+            if (!mapMakerInit)
+            {
+				worldEditor.Init();//Inits the editor palettes and assets
+                mapMakerInit = true;
+            }
+
+
+            //Update and draw
+            worldEditor.HandleInput(camera);
+            worldEditor.Draw3D(camera);
+			//If testing the level, start the game in level editor level
+            if (IsKeyPressed(KEY_T) && IsKeyDown(KEY_LEFT_CONTROL)) testLevel();
+        }
+        else
+        {
+			//If the level editor is closed, un-init it
+            mapMakerInit = false;
+        }
+        // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
 
         //Gameplay >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         if (scenes.sceneGameplay)
@@ -92,31 +142,27 @@ int main(void)
             {
                 DisableCursor();
                 mouseDisabled = true;
-
-                gameUI.LoadAssets("resources/fonts/Blood.ttf", "resources/fonts/Ammo.otf", "resources/images/ak_icon.png");
             }
 
-
-            //Allows debug controls while paused (including the ability to pause and unpause)
-            debugControls();
-
-            if (!paused)
-            {
-                //Updates
-                Update();
-            }
-            //Draws game
+            //Update the game when not paused and always draw the game
+            if (!paused) Update();
             Draw();
+			//Keep the debugControls outside of the update loop so it can run regardless of if the game is paused or not
+            debugControls();
         }
+        //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     }
 
+    //Close program
     if (!WindowShouldClose) CloseWindow();
     return 0;
 }
 
+
+
+
 /// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Game Logic run by update and draw
-
 void Update()
 {
     /// Movement & collision detection
@@ -140,20 +186,24 @@ void Update()
     //Enemy AI ()
     for (auto& enemy : enemies)
     {
-        if (!stopEnemy)enemy.Update();
+        //Updates enemy AI and movement unless commanded to stop
+		if (!stopEnemy)enemy.Update();
 
+		//If the enemy is alive, check for collisions with the player, obstacles and other alive enemies
         if (enemy.IsAlive())
         {
+            //Check which enemies this enemy should collide with
             std::vector<Enemy*> otherEnemies;
-            for (auto& other : enemies)
-            {
-                if (&enemy != &other && other.IsAlive()) // Don't compare with self or dead enemies
-                    otherEnemies.push_back(&other);
-            }
+            for (auto& other : enemies) if (&enemy != &other && other.IsAlive()) otherEnemies.push_back(&other);
+
+			//Move the enemy with the navgrid, colliding with the other enemies (if alive) and the walls
             if (!enemyMove)enemy.Move(player.position, navGrid, world.GetWallBoundingBoxes(), otherEnemies, GetFrameTime());
         }
     }
     //spawner.DespawnDeadEnemies();
+    
+
+
     //Particles
     particleSystem.UpdateAll(GetFrameTime());
     particles();
@@ -169,41 +219,64 @@ void Draw()
     ClearBackground(BLACK);//Clears screen
     //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     BeginMode3D(camera);//Start of 3D Rendering
-    //BeginBlendMode(BLEND_ALPHA);
+
+
 
     //World drawing (walls, doors, floor, ceiling)
-    for (int y = 0; y < MAP_HEIGHT; y++)
+    //Draw every layer from file
+    const int LEVELS = world.mapHeight / MAP_LENGHT;//mapHeight filled in from World::BuildFromImage
+    for (int layer = 0; layer < LEVELS; ++layer)
     {
-        for (int x = 0; x < MAP_WIDTH; x++)
+        //Cube center
+        float worldY = layer + 0.5f;
+
+		//Loop through the map and draw the walls, doors, etc
+        for (int z = 0; z < MAP_LENGHT; ++z)
         {
-            //Get the pixel color from the map
-            int index = y * MAP_WIDTH + x;
-            Color pixelColor = mapPixels[index];
-
-            //Recenter  to match up walls+doors to collisions
-            Vector3 obsticalPosition = { x + 0.5f, 0.5f, y + 0.5f };
-            //Floor and ceiling offseted positions
-            Vector3 floorPosition = { x + 0.5f, -0.5f, y + 0.5f };
-            Vector3 ceilingPosition = { x + 0.5f, 1.5f, y + 0.5f };
+            for (int x = 0; x < MAP_WIDTH; ++x)
+            {
+				//Get the current pixel color from the map
+                int index = (layer * MAP_LENGHT + z) * MAP_WIDTH + x;
+                Color pixelColor = mapPixels[index];
+				//Get the world position of the current pixel
+                Vector3 cellPos = { x + 0.5f, worldY, z + 0.5f };
 
 
-            //Draw floor under BLACK pixels
-            if (pixelColor.r == BLACK.r && pixelColor.g == BLACK.g && pixelColor.b == BLACK.b)
-                globals.DrawCubeTexture(floorTexture, floorPosition, 1.0f, 1.0f, 1.0f, WHITE);
 
-            //Draw ceiling over BLACK pixels
-            if (pixelColor.r == BLACK.r && pixelColor.g == BLACK.g && pixelColor.b == BLACK.b)
-                globals.DrawCubeTexture(ceilingTexture, ceilingPosition, 1.0f, 1.0f, 1.0f, WHITE);
+                //Empty space = black
+                bool isEmpty = (pixelColor.r == BLACK.r && pixelColor.g == BLACK.g && pixelColor.b == BLACK.b);
 
-            //Draw wall on WHITE pixels
-            if (pixelColor.r == WHITE.r && pixelColor.g == WHITE.g && pixelColor.b == WHITE.b)
-                globals.DrawCubeTexture(wallTexture, obsticalPosition, 1.0f, 1.0f, 1.0f, WHITE);
+                //Walls
+                if (pixelColor.r == WHITE.r && pixelColor.g == WHITE.g && pixelColor.b == WHITE.b)
+                    globals.DrawCubeTexture(wallTexture, cellPos, 1, 1, 1, WHITE);
 
-            //Draw door on BLUE pixels
-            if (pixelColor.r == BLUE.r && pixelColor.g == BLUE.g && pixelColor.b == BLUE.b)
-                globals.DrawCubeTexture(doorTexture, obsticalPosition, 1.0f, 1.0f, 1.0f, WHITE);
+                //Doors
+                else if (pixelColor.r == BLUE.r && pixelColor.g == BLUE.g && pixelColor.b == BLUE.b)
+                    globals.DrawCubeTexture(doorTexture, cellPos, 1, 1, 1, WHITE);
+
+                //Floor
+                else if (pixelColor.r == BROWN.r && pixelColor.g == BROWN.g && pixelColor.b == BROWN.b)
+                    globals.DrawCubeTexture(floorTexture, cellPos, 1, 1, 1, WHITE);
+
+                //Ceiling
+                else if (pixelColor.r == DARKBROWN.r && pixelColor.g == DARKBROWN.g && pixelColor.b == DARKBROWN.b)
+                    globals.DrawCubeTexture(ceilingTexture, cellPos, 1, 1, 1, WHITE);
+
+
+                //Stairs (alternate directions)
+                if (ColorEq(pixelColor, ORANGE_N))//N NORTH
+                    globals.DrawStair(cellPos, 0, floorTexture);
+                else if (ColorEq(pixelColor, ORANGE_S))//S SOUTH
+                    globals.DrawStair(cellPos, 1, floorTexture);
+                else if (ColorEq(pixelColor, ORANGE_E))//E EAST
+                    globals.DrawStair(cellPos, 2, floorTexture);
+                else if (ColorEq(pixelColor, ORANGE_W))//W WEST
+                    globals.DrawStair(cellPos, 3, floorTexture);
+
+            }
         }
     }
+
 
 
     /// Draw entites /////>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -225,9 +298,7 @@ void Draw()
 
 
     //Draws the minimap
-    float scale = globals.miniMapScale / 2;
-    DrawTextureEx(miniMap, Vector2{ screenWidth - MAP_WIDTH * scale - MAP_WIDTH, MAP_WIDTH + 100 }, 0.0f, scale, WHITE);//Minimap
-    DrawRectangleLines(screenWidth - MAP_WIDTH * scale - MAP_WIDTH, MAP_WIDTH + 100, MAP_WIDTH * scale, MAP_HEIGHT * scale, RED);//Minimap border
+    world.DrawMiniMapSmall(player, world, screenWidth, screenHeight);
 
     //Draws the players hand and updates its animations
     player.Animate(screenWidth, screenHeight, camera, mapPosition);
@@ -304,16 +375,15 @@ void particles()
     shellCasingParams.texture = &shellCasing;
 }
 
+
+
 void shooting()
 {
 	//Handles actual shooting
     if (player.justFired)
     {
-        ProcessBulletShot(camera,
-            world.GetWallBoundingBoxes(),   // wall colliders
-            world.GetDoorBoundingBoxes(),   // door colliders
-            enemies, player.pistolEquipped, player.akEquipped, player.shotgunEquipped, player.smgEquipped);                       // enemy vector
-
+        ProcessBulletShot(camera, world.GetWallBoundingBoxes(), world.GetDoorBoundingBoxes(),
+                            enemies, player.pistolEquipped, player.akEquipped, player.shotgunEquipped, player.smgEquipped);
     }
 
 
@@ -389,10 +459,11 @@ void debug()
         }
         //Player bounding box
         DrawBoundingBox(player.hitbox, RED);
+    //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
-        //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        /// Raycast hit points
+    //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    /// Raycast hit points
         Vector3 zero = { 0, 0, 0 };
 
         //Wall-bullet collision point
@@ -413,6 +484,47 @@ void debug()
         if (player.hitTarget && player.shot)DrawSphere(player.hitPoint, 0.1f, RED);
 
         DrawSphere(enemyCollision, 0.1f, BLUE);
+    //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    }
+}
+
+
+
+void testLevel()
+{
+    //Get the player spawn point from spawn blocks in the level
+    Vector3 spawn;
+    if (!worldEditor.FindPlayerSpawn(spawn))
+    {
+        TraceLog(LOG_WARNING, "No BLK_SPAWN tile – cannot start level");
+    }
+    else//Spawn point found
+    {
+        ///Build the level from the save file
+        //First unload any map data
+        if (miniMap.id) UnloadTexture(miniMap);
+        if (mapPixels) UnloadImageColors(mapPixels);
+        //Then load in the map data from file
+        Image tall = worldEditor.BakeImage();
+        miniMap = LoadTextureFromImage(tall);
+        mapPixels = LoadImageColors(tall);
+
+        //Build the world from the image
+        world.BuildFromImage(tall);//Place all the tiles from the pixel data
+        navGrid = world.CreateNavigationGrid();//Create the navigation grid for pathfinding
+        UnloadImage(tall);//Save file no longer needed
+
+        //Spawn the player on the found spawn point and set its initial physics
+        camera.position = spawn;
+        player.velocityY = 0.0f;
+        player.doGravity = false;//Start as false so world can be built correctly before player starts gravity calculations
+
+
+        //Close the level editor and begin gameplay
+        scenes.sceneMapMaker = false;
+        scenes.sceneGameplay = true;
+        mapMakerInit = false;//So level editor will reinitialize next time
+        EnableCursor();//No cursor 
     }
 }
 

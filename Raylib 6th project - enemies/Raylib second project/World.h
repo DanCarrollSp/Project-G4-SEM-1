@@ -1,13 +1,14 @@
-#pragma once
+﻿#pragma once
 
 //Global Libs
 #include "raylib.h"
 #include <stdlib.h>
 #include <time.h>
-
-//Local Libs
-#include "Globals.h"
 #include <vector>
+//Local Libs
+#include "Player.h"
+#include "Globals.h"
+
 
 class World
 {
@@ -31,4 +32,10 @@ public:
 
 	int mapWidth;
 	int mapHeight;
+
+
+	//Replaces the current map with image then rebuild
+	void BuildFromImage(const Image& img);
+
+	static void DrawMiniMapSmall(const Player& pl, const World& w, int screenW, int screenH);
 };

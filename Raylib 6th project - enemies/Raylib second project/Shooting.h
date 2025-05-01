@@ -43,4 +43,4 @@ bool IsEnemyInSight(Camera& camera,
     const std::vector<BoundingBox>& doorBoxes,
     std::vector<Enemy>& enemies);
 
-#endif // SHOOTING_H
+#endif

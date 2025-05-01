@@ -129,6 +129,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>C:\raylib-5.0_win64_msvc16\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -153,6 +154,7 @@
     <ClCompile Include="Shooting.cpp" />
     <ClCompile Include="UI.cpp" />
     <ClCompile Include="World.cpp" />
+    <ClCompile Include="WorldEditor.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Decal.h" />
@@ -168,6 +170,7 @@
     <ClInclude Include="Shooting.h" />
     <ClInclude Include="UI.h" />
     <ClInclude Include="World.h" />
+    <ClInclude Include="WorldEditor.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

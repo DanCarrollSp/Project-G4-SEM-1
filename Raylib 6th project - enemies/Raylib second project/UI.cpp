@@ -17,10 +17,10 @@ void UI::LoadAssets(const std::string& fontPath, const std::string& fontSmallPat
     smallFont = LoadFont(fontSmallPath.c_str());
     akTexture = LoadTexture(akImagePath.c_str());
 
-	// Load the chain texture
+	//Load the chain texture
 	chainTexture = LoadTexture("resources/Chain.png");
 
-	// Load the pause texture
+	//Load the pause texture
 	pauseTexture = LoadTexture("resources/paused.png");
 }
 
@@ -33,44 +33,50 @@ void UI::UnloadAssets()
 
 void UI::Draw(int health, int currentAmmo, int maxAmmo) 
 {
-    // --- HEALTH (top left) with outline ---
+    //Health top left - with outline
     std::string healthText = std::to_string(health) + "%";
     Vector2 healthPos = { 50, 100 };
     float fontSize = 200;
     float spacing = 2;
 
-    // Outline pass
-    for (int dx = -2; dx <= 2; dx++) {
-        for (int dy = -2; dy <= 2; dy++) {
-            if (dx != 0 || dy != 0) {
-                DrawTextEx(mainFont, healthText.c_str(),
-                    { healthPos.x + dx, healthPos.y + dy },
-                    fontSize, spacing, BLACK);
+	//Outline (remake the health twice, slightly offset and black)
+    for (int dx = -2; dx <= 2; dx++) 
+    {
+		//Derivative of the outline
+        for (int dy = -2; dy <= 2; dy++) 
+        {
+            if (dx != 0 || dy != 0)
+            {
+                DrawTextEx(mainFont, healthText.c_str(), { healthPos.x + dx, healthPos.y + dy }, fontSize, spacing, BLACK);
             }
         }
     }
-
-    // Main text
+    //Main health text (under outline so its drawn on top)
     DrawTextEx(mainFont, healthText.c_str(), healthPos, fontSize, spacing, RED);
 
-    // --- AMMO (bottom left) with outline ---
+
+
+    //AMMO (bottom left) with same outline
     std::string ammoText = std::to_string(currentAmmo) + "/" + std::to_string(maxAmmo);
     Vector2 ammoPos = { 25, 980 };
     float ammoFontSize = 80;
 
-    for (int dx = -2; dx <= 2; dx++) {
-        for (int dy = -2; dy <= 2; dy++) {
-            if (dx != 0 || dy != 0) {
-                DrawTextEx(smallFont, ammoText.c_str(),
-                    { ammoPos.x + dx, ammoPos.y + dy },
-                    ammoFontSize, spacing, BLACK);
+    //Outline (remake the ammo twice, slightly offset on either side and black)
+    for (int dx = -2; dx <= 2; dx++)
+    {
+        //Derivative of the outline
+        for (int dy = -2; dy <= 2; dy++)
+        {
+            if (dx != 0 || dy != 0)
+            {
+                DrawTextEx(smallFont, ammoText.c_str(), { ammoPos.x + dx, ammoPos.y + dy }, ammoFontSize, spacing, BLACK);
             }
         }
     }
-
+    //Main ammo text (under outline so its drawn on top)
     DrawTextEx(smallFont, ammoText.c_str(), ammoPos, ammoFontSize, spacing, LIGHTGRAY);
 
-    // --- Weapon Silhouette ---
+    //Weapon Silhouette (todo)
     DrawTexture(akTexture, 20, screenHeight - akTexture.height - 40, WHITE);
 }
 

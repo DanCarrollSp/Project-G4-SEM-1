@@ -62,4 +62,8 @@ public:
 	//
 	bool sceneGameplay = false;
 	bool sceneParticleEngine = false;
+	//
+	bool sceneMapMaker = false;
+	void updateMapMaker();
+	void drawMapMaker(Camera3D&);
 };

@@ -5,8 +5,9 @@
 #include <rlgl.h>
 #include <unordered_set>
 
-const int MAP_WIDTH = 40;
-const int MAP_HEIGHT = 40;
+const int MAP_WIDTH = 100;
+const int MAP_LENGHT = 100;
+const int MAP_LEVELS = 32;
 
 class Globals
 {
@@ -25,8 +26,19 @@ public:
     Model cylinderModel;
     std::unordered_set<int> assignedModelTextures;//Stored ids of textures that have been assigned to a model
 
+    //Draw textured stairs
+    void DrawStair(const Vector3& base, int dir, Texture2D tex);
 
 
     //Scale the minimap
     float miniMapScale = 10.0f;
 };
+
+//Stair colors
+static const Color ORANGE_N = { 255,128, 0,255 };
+static const Color ORANGE_S = { 255,160, 0,255 };
+static const Color ORANGE_E = { 255,192, 0,255 };
+static const Color ORANGE_W = { 255,224, 0,255 };
+
+//Color equator
+bool ColorEq(Color a, Color b);

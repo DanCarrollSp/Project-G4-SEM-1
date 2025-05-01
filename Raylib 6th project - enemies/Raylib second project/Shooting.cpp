@@ -85,13 +85,20 @@ void ProcessBulletShot(
 
 
 	//If we get this far, we know we hit something, process what to do based on what we hit:
-    if (hitType == HIT_WALL || hitType == HIT_DOOR)
+    if (hitType == HIT_WALL)
     {
         //Computes surface normal based on the hit position and bounding box
         Vector3 normal = EstimateNormalFromHit(hitPoint, hitBox);
         //Adds decal to the surface
         decalManager.AddDecal(hitPoint, normal, 0.02f, &bulletHole, 999);
-    }
+	}
+	else if (hitType == HIT_DOOR)
+	{
+        //Computes surface normal based on the hit position and bounding box
+        Vector3 normal = EstimateNormalFromHit(hitPoint, hitBox);
+        //Adds decal to the surface
+        decalManager.AddDecal(hitPoint, normal, 0.02f, &bulletHole, 2);
+	}
     else if (hitType == HIT_ENEMY)
     {
         //Blood particle effect
@@ -109,7 +116,7 @@ void ProcessBulletShot(
 
 void alwaysOnShot()
 {
-    //particleSystem.Instantiate(shellCasingParams);
+    particleSystem.Instantiate(shellCasingParams);
 }
 
 
