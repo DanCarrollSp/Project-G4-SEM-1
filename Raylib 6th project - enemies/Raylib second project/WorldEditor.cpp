@@ -1,7 +1,5 @@
 ﻿#include "WorldEditor.h"
 
-Globals globals2;
-
 
 
 
@@ -68,6 +66,8 @@ WorldEditor::WorldEditor()
 void WorldEditor::Init()
 {
     InitPalette();
+
+    alphaShader = LoadShader(NULL, "shaders/alpha.fs");
 }
 
 //Setup default file path for maps
@@ -94,25 +94,89 @@ Color WorldEditor::BlockToPixel(Block b)
     //Map each block type to its corrasponding pixel color
     switch (b)
     {
+        // Default tiles
+    case BLK_WALL:             return WallColor;
+    case BLK_DOOR1:             return DoorColor1;
+    case BLK_DOOR2:             return DoorColor2;
+    case BLK_FLOOR:            return FloorColor;
+    case BLK_STONE:            return StoneColor;
+    case BLK_TEST:             return TEST_COLOR;
 
-        //Default tiles
-    case BLK_WALL: return WHITE;
-    case BLK_DOOR: return BLUE;
-    case BLK_FLOOR: return BROWN;
-    case BLK_TEST: return { 1,1,1 };
+        // Utility tiles
+    case BLK_SPAWN:            return SpawnColor;
 
-                 //Utility tiles
-    case BLK_SPAWN: return { 2,1,1,255 };
+        // Stairs
+    case BLK_STAIR_N:          return ORANGE_N;
+    case BLK_STAIR_S:          return ORANGE_S;
+    case BLK_STAIR_E:          return ORANGE_E;
+    case BLK_STAIR_W:          return ORANGE_W;
 
-                  //Stairs
-    case BLK_STAIR_N: return ORANGE_N;
-    case BLK_STAIR_S: return ORANGE_S;
-    case BLK_STAIR_E: return ORANGE_E;
-    case BLK_STAIR_W: return ORANGE_W;
+        // Brick
+    case BLK_BRICK1:           return Brick1Color;
+    case BLK_BRICK2:           return Brick2Color;
+    case BLK_BRICK3:           return Brick3Color;
+    case BLK_BRICK4:           return Brick4Color;
+
+        // Brick Faces
+    case BLK_BRICK_FACE1:      return BrickFace1Color;
+    case BLK_BRICK_FACE2:      return BrickFace2Color;
+    case BLK_BRICK_FACE2_BLOOD:return BrickFace2BloodColor;
+    case BLK_BRICK_FACE3:      return BrickFace3Color;
+    case BLK_BRICK_FACE3_BLOOD:return BrickFace3BloodColor;
+    case BLK_BRICK_FACE4:      return BrickFace4Color;
+    case BLK_BRICK_FACE5:      return BrickFace5Color;
+    case BLK_RED_BRICK:        return RedBrickTextureColor;
+
+        // Cement / Concrete
+    case BLK_CEMENT_WALL:      return CementWallColor;
+    case BLK_CEMENT_BOTTOM1:   return CementWallBottom1Color;
+    case BLK_CEMENT_BOTTOM2:   return CementWallBottom2Color;
+    case BLK_CEMENT_BOTTOM3:   return CementWallBottom3Color;
+    case BLK_CEMENT_DECO1:     return CementWallDeco1Color;
+    case BLK_CEMENT_DECO2:     return CementWallDeco2Color;
+    case BLK_CEMENT_TOP1:      return CementWallTop1Color;
+    case BLK_CEMENT_TOP2:      return CementWallTop2Color;
+
+        // Dark Steel
+    case BLK_DARK_STEEL:           return DarkSteelColor;
+    case BLK_DARK_STEEL_BEAM:      return DarkSteelBeamColor;
+    case BLK_DARK_STEEL_DECO:      return DarkSteelDecoColor;
+    case BLK_DARK_STEEL_HAZARD:    return DarkSteelHazardColor;
+    case BLK_DARK_STEEL_TOP1:      return DarkSteelTop1Color;
+    case BLK_DARK_STEEL_TOP2:      return DarkSteelTop2Color;
+    case BLK_DARK_STEEL_WALL:      return DarkSteelWallColor;
+    case BLK_DARK_STEEL_WALL_DECO:return DarkSteelWallDecoColor;
+
+        // Steel
+    case BLK_OLD_STEEL:        return OldSteelColor;
+    case BLK_RUST_BEAM_UP:     return RustBeamUpColor;
+    case BLK_RUST_BEAM_SIDE:   return RustBeamSideColor;
+    case BLK_STEEL_BEAM1:      return SteelBeam1Color;
+    case BLK_STEEL_BEAM2:      return SteelBeam2Color;
+    case BLK_STEEL_DOOR:       return SteelDoorColor;
+    case BLK_STEEL_GRIP1:      return SteelGrip1Color;
+    case BLK_STEEL_GRIP2:      return SteelGrip2Color;
+    case BLK_STEEL_PLATE:      return SteelPlateColor;
+    case BLK_STEEL_REINFORCED: return SteelReinforcedColor;
+
+        // Grates
+    case BLK_GRATE:            return GrateColor;
+    case BLK_GRATE_RUST:       return GrateRustColor;
+
+        // Misc
+    case BLK_SUPPORT_BEAM:      return SupportBeamColor;
+    case BLK_SWITCH_GREEN:      return SwitchGreenColor;//
+    case BLK_SWITCH_RED:        return SwitchRedColor;
+    case BLK_BIG_DOOR_LEFT1:     return BigDoorLeftColor1;//
+    case BLK_BIG_DOOR_RIGHT1:    return BigDoorRightColor1;
+    case BLK_BIG_DOOR_LEFT2:     return BigDoorLeftColor2;//
+    case BLK_BIG_DOOR_RIGHT2:    return BigDoorRightColor2;
+    case BLK_FENCE:             return FenceColor;
+    case BLK_VENT:              return VentColor;
 
 
-        //Empty
-    default: return BLACK;
+        // Empty / Unknown
+    default:                   return BLACK;
 
     }
 }
@@ -134,7 +198,7 @@ bool WorldEditor::FindPlayerSpawn(Vector3& out)
                 //Get the color of the pixel of the voxel at the current coordinates
                 Color v = m.voxels[coord3dToIndex(l, z, x)];
                 //Checks if its a spawn pixel by color (r=2, g=1, b=1)
-                if (v.r == 2 && v.g == 1 && v.b == 1) spawns.emplace_back(l, z, x);//Record spawn point in the vector
+                if (ColorEq(v, SpawnColor)) spawns.emplace_back(l, z, x);//Record spawn point in the vector
             }
 
     //Return false if no spawn points were found
@@ -209,20 +273,85 @@ void WorldEditor::Draw3D(Camera3D& cam)
 
 
                 //Determine texture to draw based on block color
-                //Wall
-                if (ColorEq(color, WHITE)) globals2.DrawCubeTexture(TextureWall, pos, 1, 1, 1, WHITE);
-                //Door
-                else if (ColorEq(color, BLUE)) globals2.DrawCubeTexture(TextureDoor, pos, 1, 1, 1, WHITE);
-                //Floor
-                else if (ColorEq(color, BROWN)) globals2.DrawCubeTexture(TextureFloor, pos, 1, 1, 1, WHITE);
-                //Test Block
-                else if (color.r == 1 && color.g == 1 && color.b == 1) globals2.DrawCubeTexture(TEST_TEXTURE, pos, 1, 1, 1, WHITE);
+                if (ColorEq(color, WallColor)) globals.DrawCubeTexture(TextureWall, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, DoorColor1)) globals.DrawCubeTexture(TextureDoor, pos, 0.2, 1, 1, WHITE);
+                else if (ColorEq(color, DoorColor2)) globals.DrawCubeTexture(TextureDoor, pos, 1, 1, 0.2, WHITE);
+                else if (ColorEq(color, FloorColor)) globals.DrawCubeTexture(TextureFloor, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, StoneColor)) globals.DrawCubeTexture(TextureStone, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, TEST_COLOR)) globals.DrawCubeTexture(TEST_TEXTURE, pos, 1, 1, 1, WHITE);
 
-                //Spawn Point
-                else if (color.r == 2 && color.g == 1 && color.b == 1) globals2.DrawCubeTexture(PlayerSpawnTex, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, SpawnColor)) globals.DrawCubeTexture(TextureSpawn, pos, 1, 1, 1, WHITE);
+
+                //Brick
+                else if (ColorEq(color, Brick1Color)) globals.DrawCubeTexture(TextureBrick1, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, Brick2Color)) globals.DrawCubeTexture(TextureBrick2, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, Brick3Color)) globals.DrawCubeTexture(TextureBrick3, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, Brick4Color)) globals.DrawCubeTexture(TextureBrick4, pos, 1, 1, 1, WHITE);
+
+                //Brick Faces
+                else if (ColorEq(color, BrickFace1Color)) globals.DrawCubeTexture(TextureBrickFace1, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, BrickFace2Color)) globals.DrawCubeTexture(TextureBrickFace2, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, BrickFace2BloodColor)) globals.DrawCubeTexture(TextureBrickFace2Blood, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, BrickFace3Color)) globals.DrawCubeTexture(TextureBrickFace3, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, BrickFace3BloodColor)) globals.DrawCubeTexture(TextureBrickFace3Blood, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, BrickFace4Color)) globals.DrawCubeTexture(TextureBrickFace4, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, BrickFace5Color)) globals.DrawCubeTexture(TextureBrickFace5, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, RedBrickTextureColor)) globals.DrawCubeTexture(TextureRedBrickTexture, pos, 1, 1, 1, WHITE);
+
+                //Cement
+                else if (ColorEq(color, CementWallColor)) globals.DrawCubeTexture(TextureCementWall, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, CementWallBottom1Color)) globals.DrawCubeTexture(TextureCementWallBottom1, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, CementWallBottom2Color)) globals.DrawCubeTexture(TextureCementWallBottom2, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, CementWallBottom3Color)) globals.DrawCubeTexture(TextureCementWallBottom3, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, CementWallDeco1Color)) globals.DrawCubeTexture(TextureCementWallDeco1, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, CementWallDeco2Color)) globals.DrawCubeTexture(TextureCementWallDeco2, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, CementWallTop1Color)) globals.DrawCubeTexture(TextureCementWallTop1, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, CementWallTop2Color)) globals.DrawCubeTexture(TextureCementWallTop2, pos, 1, 1, 1, WHITE);
+
+                //Dark Steel
+                else if (ColorEq(color, DarkSteelColor)) globals.DrawCubeTexture(TextureDarkSteel, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, DarkSteelBeamColor)) globals.DrawCubeTexture(TextureDarkSteelBeam, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, DarkSteelDecoColor)) globals.DrawCubeTexture(TextureDarkSteelDeco, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, DarkSteelHazardColor)) globals.DrawCubeTexture(TextureDarkSteelHazard, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, DarkSteelTop1Color)) globals.DrawCubeTexture(TextureDarkSteelTop1, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, DarkSteelTop2Color)) globals.DrawCubeTexture(TextureDarkSteelTop2, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, DarkSteelWallColor)) globals.DrawCubeTexture(TextureDarkSteelWall, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, DarkSteelWallDecoColor)) globals.DrawCubeTexture(TextureDarkSteelWallDeco, pos, 1, 1, 1, WHITE);
+
+                //Steel
+                else if (ColorEq(color, OldSteelColor)) globals.DrawCubeTexture(TextureOldSteel, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, RustBeamUpColor)) globals.DrawCubeTexture(TextureRustBeamUp, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, RustBeamSideColor)) globals.DrawCubeTexture(TextureRustBeamSide, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, SteelBeam1Color)) globals.DrawCubeTexture(TextureSteelBeam1, pos, 0.4, 1, 0.4, WHITE);
+                else if (ColorEq(color, SteelBeam2Color)) globals.DrawCubeTexture(TextureSteelBeam2, pos, 0.4, 1, 0.4, WHITE);
+                else if (ColorEq(color, SteelDoorColor)) globals.DrawCubeTexture(TextureSteelDoor, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, SteelGrip1Color)) globals.DrawCubeTexture(TextureSteelGrip1, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, SteelGrip2Color)) globals.DrawCubeTexture(TextureSteelGrip2, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, SteelPlateColor)) globals.DrawCubeTexture(TextureSteelPlate, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, SteelReinforcedColor)) globals.DrawCubeTexture(TextureSteelReinforced, pos, 1, 1, 1, WHITE);
+
+                //Grates
+                else if (ColorEq(color, GrateColor)) globals.DrawCubeTexture(TextureGrate, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, GrateRustColor)) globals.DrawCubeTexture(TextureGrateRust, pos, 1, 1, 1, WHITE);
+
+
+                Vector3 bigDoorPos = pos;
+                bigDoorPos.y += 0.5;
+                //Misc
+                BeginShaderMode(alphaShader);
+                if (ColorEq(color, SupportBeamColor)) globals.DrawCubeTexture(TextureSupportBeam, pos, .33, 1, .33, WHITE);
+                else if (ColorEq(color, SwitchGreenColor)) globals.DrawCubeTexture(TextureSwitchGreen, pos, 1, 1, 1, WHITE);//
+                else if (ColorEq(color, SwitchRedColor)) globals.DrawCubeTexture(TextureSwitchRed, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, BigDoorLeftColor1)) globals.DrawCubeTexture(TextureBigDoorLeft, bigDoorPos, 1, 2, 0.2, WHITE);//
+                else if (ColorEq(color, BigDoorRightColor1)) globals.DrawCubeTexture(TextureBigDoorRight, bigDoorPos, 1, 2, 0.2, WHITE);
+                else if (ColorEq(color, BigDoorLeftColor2)) globals.DrawCubeTexture(TextureBigDoorLeft, bigDoorPos, 0.2, 2, 1, WHITE);//
+                else if (ColorEq(color, BigDoorRightColor2)) globals.DrawCubeTexture(TextureBigDoorRight, bigDoorPos, 0.2, 2, 1, WHITE);
+                else if (ColorEq(color, FenceColor)) globals.DrawCubeTexture(TextureFence, pos, .1, 1, 1, WHITE);
+                else if (ColorEq(color, VentColor)) globals.DrawCubeTexture(TextureVent, pos, 1, 1, 1, WHITE);
+                EndShaderMode();
 
                 //Stairs
-                else if (ColorEq(color, ORANGE_N) || ColorEq(color, ORANGE_S) || ColorEq(color, ORANGE_E) || ColorEq(color, ORANGE_W))
+                if (ColorEq(color, ORANGE_N) || ColorEq(color, ORANGE_S) || ColorEq(color, ORANGE_E) || ColorEq(color, ORANGE_W))
                 {
                     //For stair step segments with varying heights
                     float heights[4]{ .25f, .5f, .75f, 1.0f };
@@ -245,7 +374,7 @@ void WorldEditor::Draw3D(Camera3D& cam)
                         stairPos.y = floorf(stairPos.y) + heights[i] * .5f;
 
                         //Draw the stairs
-                        globals2.DrawCubeTexture(TEST_TEXTURE, stairPos, s.x, s.y, s.z, WHITE);
+                        globals.DrawCubeTexture(TEST_TEXTURE, stairPos, s.x, s.y, s.z, WHITE);
                     }
                 }
             }
@@ -354,8 +483,45 @@ void WorldEditor::HandleInput(Camera3D& cam)
 
 
 
-    //Free look editor camera control
-    if (IsMouseButtonDown(MOUSE_BUTTON_SIDE)) UpdateCamera(&cam, CAMERA_FREE);
+    //Free look editor camera control with boost
+    if (IsMouseButtonDown(MOUSE_BUTTON_SIDE))
+    {
+        //Do normal look movement
+        UpdateCamera(&cam, CAMERA_FREE);
+
+        //If Shift is held, add extra movement
+        if (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT))
+        {
+            const int boostAmount = 8;
+            const float defaultSpeed = 4.0f;//Raylibs CAMERA_FREE move speed
+            float dt = GetFrameTime();
+
+            //Get the forward and right vectors
+            Vector3 forward = Vector3Normalize(Vector3Subtract(cam.target, cam.position));
+            forward.y = 0;
+            forward = Vector3Normalize(forward);
+            Vector3 right = Vector3Normalize(Vector3CrossProduct(forward, cam.up));
+
+            //Movement controls
+            Vector3 dir = { 0,0,0 };
+            if (IsKeyDown(KEY_W)) dir = Vector3Add(dir, forward);
+            if (IsKeyDown(KEY_S)) dir = Vector3Subtract(dir, forward);
+            if (IsKeyDown(KEY_D)) dir = Vector3Add(dir, right);
+            if (IsKeyDown(KEY_A)) dir = Vector3Subtract(dir, right);
+
+            if (Vector3Length(dir) > 0.0f)
+            {
+                dir = Vector3Normalize(dir);
+                //Move with the extra boostAmount
+                float extra = defaultSpeed * dt * (boostAmount - 1);
+                Vector3 delta = Vector3Scale(dir, extra);
+                //Update pos and target
+                cam.position = Vector3Add(cam.position, delta);
+                cam.target = Vector3Add(cam.target, delta);
+            }
+        }
+    }
+
 
     //Layer up/down shortcuts
     if (IsKeyPressed(KEY_E) && currentLevel < maps[currentMapIndex].levels - 1) ++currentLevel;
@@ -560,21 +726,19 @@ void WorldEditor::HandleInput(Camera3D& cam)
 void WorldEditor::initPaletteTextures()
 {
     //Loads all the palette textures
-    TextureWall = LoadTexture("resources/World/wallTexture.png");
-    TextureDoor = LoadTexture("resources/World/door.png");
-    TextureFloor = LoadTexture("resources/World/floorTexture.png");
-    TEST_TEXTURE = LoadTexture("resources/World/testTexture.png");
-    PlayerSpawnTex = LoadTexture("resources/World/PlayerSpawn.png");
+    //TextureWall = LoadTexture("resources/World/Wall.png");
+    //TextureDoor = LoadTexture("resources/World/Door.png");
+    //TextureFloor = LoadTexture("resources/World/Floor.png");
+    //TextureStone = LoadTexture("resources/World/Stone.png");
+    //TEST_TEXTURE = LoadTexture("resources/World/Test.png");
+    ////
+    //TextureSpawn = LoadTexture("resources/World/Spawn.png");
 }
 
 // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 //Builds out the palette list and toggle button
 void WorldEditor::InitPalette()
 {
-    //Clears existing palette
-    palette.clear();
-    //Load textures
-    initPaletteTextures();
 
     //Set the palette toggle button position and size
     int buttonWidth = 96;//Palette button width
@@ -598,19 +762,81 @@ void WorldEditor::InitPalette()
 
     //Add each tile type to the palette
     add(BLK_WALL, TextureWall, "Wall");
-    add(BLK_DOOR, TextureDoor, "Door");
+    add(BLK_DOOR1, TextureDoor, "Door 1");
+    add(BLK_DOOR2, TextureDoor, "Door 2");
     add(BLK_FLOOR, TextureFloor, "Floor");
+    add(BLK_STONE, TextureStone, "Stone");
     add(BLK_TEST, TEST_TEXTURE, "Test");
 
-    add(BLK_SPAWN, PlayerSpawnTex, "Spawn");
+    add(BLK_SPAWN, TextureSpawn, "Spawn");
 
     add(BLK_STAIR_N, TEST_TEXTURE, "Stair N");
     add(BLK_STAIR_S, TEST_TEXTURE, "Stair S");
     add(BLK_STAIR_E, TEST_TEXTURE, "Stair E");
     add(BLK_STAIR_W, TEST_TEXTURE, "Stair W");
 
-    add(BLK_TEST6, TEST_TEXTURE, "Test6");
-    add(BLK_TEST7, TEST_TEXTURE, "Test7");
+    //Brick
+    add(BLK_BRICK1, TextureBrick1, "Brick 1");
+    add(BLK_BRICK2, TextureBrick2, "Brick 2");
+    add(BLK_BRICK3, TextureBrick3, "Brick 3");
+    add(BLK_BRICK4, TextureBrick4, "Brick 4");
+
+    //Brick Faces
+    add(BLK_BRICK_FACE1, TextureBrickFace1, "Brick Face 1");
+    add(BLK_BRICK_FACE2, TextureBrickFace2, "Brick Face 2");
+    add(BLK_BRICK_FACE2_BLOOD, TextureBrickFace2Blood, "Brick Face 2 (Blood)");
+    add(BLK_BRICK_FACE3, TextureBrickFace3, "Brick Face 3");
+    add(BLK_BRICK_FACE3_BLOOD, TextureBrickFace3Blood, "Brick Face 3 (Blood)");
+    add(BLK_BRICK_FACE4, TextureBrickFace4, "Brick Face 4");
+    add(BLK_BRICK_FACE5, TextureBrickFace5, "Brick Face 5");
+    add(BLK_RED_BRICK, TextureRedBrickTexture, "Red Brick");
+
+    //Cement
+    add(BLK_CEMENT_WALL, TextureCementWall, "Cement Wall");
+    add(BLK_CEMENT_BOTTOM1, TextureCementWallBottom1, "Cement Bottom 1");
+    add(BLK_CEMENT_BOTTOM2, TextureCementWallBottom2, "Cement Bottom 2");
+    add(BLK_CEMENT_BOTTOM3, TextureCementWallBottom3, "Cement Bottom 3");
+    add(BLK_CEMENT_DECO1, TextureCementWallDeco1, "Cement Deco 1");
+    add(BLK_CEMENT_DECO2, TextureCementWallDeco2, "Cement Deco 2");
+    add(BLK_CEMENT_TOP1, TextureCementWallTop1, "Cement Top 1");
+    add(BLK_CEMENT_TOP2, TextureCementWallTop2, "Cement Top 2");
+
+    //Dark Steel
+    add(BLK_DARK_STEEL, TextureDarkSteel, "Dark Steel");
+    add(BLK_DARK_STEEL_BEAM, TextureDarkSteelBeam, "Dark Steel Beam");
+    add(BLK_DARK_STEEL_DECO, TextureDarkSteelDeco, "Dark Steel Deco");
+    add(BLK_DARK_STEEL_HAZARD, TextureDarkSteelHazard, "Dark Steel Hazard");
+    add(BLK_DARK_STEEL_TOP1, TextureDarkSteelTop1, "Dark Steel Top 1");
+    add(BLK_DARK_STEEL_TOP2, TextureDarkSteelTop2, "Dark Steel Top 2");
+    add(BLK_DARK_STEEL_WALL, TextureDarkSteelWall, "Dark Steel Wall");
+    add(BLK_DARK_STEEL_WALL_DECO, TextureDarkSteelWallDeco, "Dark Steel Wall Deco");
+
+    //Steel
+    add(BLK_OLD_STEEL, TextureOldSteel, "Old Steel");
+    add(BLK_RUST_BEAM_UP, TextureRustBeamUp, "Rust Beam Up");
+    add(BLK_RUST_BEAM_SIDE, TextureRustBeamSide, "Rust Beam Side");
+    add(BLK_STEEL_BEAM1, TextureSteelBeam1, "Steel Beam 1");
+    add(BLK_STEEL_BEAM2, TextureSteelBeam2, "Steel Beam 2");
+    add(BLK_STEEL_DOOR, TextureSteelDoor, "Steel Door");
+    add(BLK_STEEL_GRIP1, TextureSteelGrip1, "Steel Grip 1");
+    add(BLK_STEEL_GRIP2, TextureSteelGrip2, "Steel Grip 2");
+    add(BLK_STEEL_PLATE, TextureSteelPlate, "Steel Plate");
+    add(BLK_STEEL_REINFORCED, TextureSteelReinforced, "Steel Reinforced");
+
+    //Grates
+    add(BLK_GRATE, TextureGrate, "Grate");
+    add(BLK_GRATE_RUST, TextureGrateRust, "Grate Rust");
+
+    //Misc
+    add(BLK_SUPPORT_BEAM, TextureSupportBeam, "Support Beam");
+    add(BLK_SWITCH_GREEN, TextureSwitchGreen, "Switch (Green)");
+    add(BLK_SWITCH_RED, TextureSwitchRed, "Switch (Red)");
+    add(BLK_BIG_DOOR_LEFT1, TextureBigDoorLeft, "Big Door Left 1");//
+    add(BLK_BIG_DOOR_RIGHT1, TextureBigDoorRight, "Big Door Right 1");
+    add(BLK_BIG_DOOR_LEFT2, TextureBigDoorLeft, "Big Door Left 2");//
+    add(BLK_BIG_DOOR_RIGHT2, TextureBigDoorRight, "Big Door Right 2");
+    add(BLK_FENCE, TextureFence, "Fence");
+    add(BLK_VENT, TextureVent, "Vent");
 }
 
 // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

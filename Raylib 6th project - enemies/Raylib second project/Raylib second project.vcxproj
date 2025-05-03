@@ -142,6 +142,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Decal.cpp" />
+    <ClCompile Include="Doors.cpp" />
     <ClCompile Include="Enemy.cpp" />
     <ClCompile Include="EntitySpawner.cpp" />
     <ClCompile Include="Globals.cpp" />
@@ -158,6 +159,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Decal.h" />
+    <ClInclude Include="Doors.h" />
     <ClInclude Include="Enemy.h" />
     <ClInclude Include="EntitySpawner.h" />
     <ClInclude Include="Globals.h" />

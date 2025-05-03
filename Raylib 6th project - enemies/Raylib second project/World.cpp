@@ -25,7 +25,7 @@ Image World::GenerateProceduralMap(int width, int height)
             if (y == 0 || y == height - 1 || x == 0 || x == width - 1) pixels[y * width + x] = WHITE;//Makes the map boarder all walls
             //Makes all center paths walkable
             if (x == 10 || y == 10) pixels[y * width + x] = BLACK;
-            
+
 
             //make middle of each side of world border a door
             if (x == 10) if (y == 0 or y == height - 1) pixels[y * width + x] = BLUE;
@@ -103,6 +103,15 @@ std::vector<std::vector<bool>> World::CreateNavigationGrid() const
     return grid;
 }
 
+std::vector<BoundingBox>& World::GetDoorBoundingBoxes()
+{
+    return doorBoundingBoxes;
+}
+const std::vector<BoundingBox>& World::GetDoorBoundingBoxes() const {
+    return doorBoundingBoxes;
+}
+
+
 
 
 //Clears and then rebuilds the world collision boxes the image file
@@ -154,10 +163,29 @@ void World::BuildFromImage(const Image& img)
 
 
 
-            //Helper lambda to push a cube bounding box to that position
-            auto push = [&](std::vector<BoundingBox>& vec)
+            auto pushBoxes = [&](std::vector<BoundingBox>& vec)
                 {
                     vec.push_back({ { static_cast<float>(x), currentBottomLayer, static_cast<float>(z) }, { static_cast<float>(x) + 1,   CurrentTopLayer, static_cast<float>(z) + 1 } });
+                };
+
+            auto pushUnique = [&](std::vector<BoundingBox>& vec, float sizeX, float sizeY, float sizeZ)
+                {
+                    //Center
+                    float cx = x + 0.5f;
+                    float cz = z + 0.5f;
+
+                    BoundingBox box;
+                    box.min = { cx - sizeX * 0.5f, currentBottomLayer, cz - sizeZ * 0.5f };
+                    box.max = { cx + sizeX * 0.5f, currentBottomLayer + sizeY, cz + sizeZ * 0.5f };
+                    vec.push_back(box);
+                };
+
+            auto pushUniqueUncentered = [&](std::vector<BoundingBox>& vec, float sizeX, float sizeY, float sizeZ)
+                {
+                    BoundingBox box;
+                    box.min = { sizeX * 0.5f, currentBottomLayer, sizeZ * 0.5f };
+                    box.max = { sizeX * 0.5f, currentBottomLayer + sizeY, sizeZ * 0.5f };
+                    vec.push_back(box);
                 };
 
             //Helper to push four cube bounding boxes in a stair step order in a given direction
@@ -195,22 +223,38 @@ void World::BuildFromImage(const Image& img)
 
 
 
-            //Get block type by color
-            bool wall = (v.r == WHITE.r && v.g == WHITE.g && v.b == WHITE.b);
-            bool door = (v.r == BLUE.r && v.g == BLUE.g && v.b == BLUE.b);
-            bool floor = (v.r == BROWN.r && v.g == BROWN.g && v.b == BROWN.b);
-            bool stair = (v.r == ORANGE.r && v.g == ORANGE.g && v.b == ORANGE.b);
 
-			//Place Default 1x1x1 bounding boxes for walls, doors, and floors
-            if (wall)  push(wallBoundingBoxes);
-            else if (door)  push(doorBoundingBoxes);
-            else if (floor) push(wallBoundingBoxes); // floor is treated as solid surface
-            //
-            //Place 4 bounding boxes for stairs in 4 different directions N,S,E,W
+            ///Place bounding boxes
+            //Door
+            if (ColorEq(v, DoorColor1)) pushUnique(doorBoundingBoxes, 0.2, 1, 1);//Door bounding box 0.2 x1x1 (no collision with player body, but does have collision for player raycast to interact)
+            if (ColorEq(v, DoorColor2)) pushUnique(doorBoundingBoxes, 1, 1, 0.2);//Door bounding box 0.2 x1x1 (no collision with player body, but does have collision for player raycast to interact)
+
+            //Stairs - Place 4 bounding boxes for stairs in 4 different directions N,S,E,W
             if (ColorEq(v, ORANGE_N)) push4StairSteps(0, currentBottomLayer);
             else if (ColorEq(v, ORANGE_S)) push4StairSteps(1, currentBottomLayer);
             else if (ColorEq(v, ORANGE_E)) push4StairSteps(2, currentBottomLayer);
             else if (ColorEq(v, ORANGE_W)) push4StairSteps(3, currentBottomLayer);
+
+            //Walls - list everything that should NOT get a wall bounding box
+            if (!ColorEq(v, DoorColor1) && !ColorEq(v, ORANGE_N) && !ColorEq(v, ORANGE_S) && !ColorEq(v, ORANGE_E) && !ColorEq(v, ORANGE_W) //No for Door and Stairs
+                && !ColorEq(v, FenceColor) && !ColorEq(v, SupportBeamColor) && !ColorEq(v, BLACK) && !ColorEq(v, SpawnColor) //No for Fence, Support Beam, Empty and TEST
+                && !ColorEq(v, SteelBeam1Color) && !ColorEq(v, SteelBeam2Color) && !ColorEq(v, TEST_COLOR) && !ColorEq(v, BigDoorLeftColor1)//No for Steal Beams, big door and TEST
+                && !ColorEq(v, BigDoorRightColor1) && !ColorEq(v, BigDoorLeftColor1) && !ColorEq(v, BigDoorRightColor2) && !ColorEq(v, BigDoorLeftColor2)
+                && !ColorEq(v, DoorColor2) && !ColorEq(v, TEST_COLOR))
+            {
+                pushBoxes(wallBoundingBoxes);
+            }
+
+
+            //Fence
+            if (ColorEq(v, FenceColor)) pushUnique(wallBoundingBoxes, 0.01, 1, 1);
+            //Pillar
+            if (ColorEq(v, SupportBeamColor)) pushUnique(wallBoundingBoxes, 0.33, 1, 0.33);
+            //Beams
+            if (ColorEq(v, SteelBeam1Color) || ColorEq(v, SteelBeam2Color)) pushUnique(wallBoundingBoxes, 0.4, 1, 0.4);
+            //Big doors
+            if (ColorEq(v, BigDoorLeftColor1) || ColorEq(v, BigDoorRightColor1)) pushUnique(doorBoundingBoxes, 1, 2, 0.2);
+            if (ColorEq(v, BigDoorLeftColor2) || ColorEq(v, BigDoorRightColor2)) pushUnique(doorBoundingBoxes, 0.2, 2, 1);
         }
     }
 }
@@ -222,7 +266,7 @@ void World::DrawMiniMapSmall(const Player& player, const World& world, int scree
 {
     //Minimap size and position
     const int miniMapSize = 60;//Mini Map window size
-	const int tileSize = 4;//Size of each tile in pixels within the window
+    const int tileSize = 4;//Size of each tile in pixels within the window
     const int minimapOriginX = screenW - miniMapSize * tileSize - 32;//The X coordinate of the minimap origin
     const int minimapOriginY = 128;//The Y coordinate of the minimap origin
 
@@ -230,7 +274,7 @@ void World::DrawMiniMapSmall(const Player& player, const World& world, int scree
 
     //Get which layer (floor) the player is currently on
     const int levels = world.mapHeight / MAP_LENGHT;//Total number of vertical layers in the world
-	int layer = (int)floorf(player.position.y);//Player current layer/floor index
+    int layer = (int)floorf(player.position.y);//Player current layer/floor index
     if (layer < 0 || layer >= levels) return;//Player is out of world bounds, nothing to draw
 
 
@@ -241,7 +285,7 @@ void World::DrawMiniMapSmall(const Player& player, const World& world, int scree
     int cz = (int)floorf(player.position.z);//Players Z (row) tile coord
     int half = miniMapSize / 2;//Half the window size in tiles
 
-	//Clamp the 40×40 window to worlds max width and length
+    //Clamp the 40×40 window to worlds max width and length
     int startX = std::max(0, cx - half);
     int startZ = std::max(0, cz - half);
     int endX = std::min(world.mapWidth, startX + miniMapSize);
@@ -250,7 +294,7 @@ void World::DrawMiniMapSmall(const Player& player, const World& world, int scree
 
 
     //Draws the minimap border background
-    DrawRectangle( minimapOriginX - 1, minimapOriginY - 1, miniMapSize * tileSize + 2, miniMapSize * tileSize + 2, RED);
+    DrawRectangle(minimapOriginX - 1, minimapOriginY - 1, miniMapSize * tileSize + 2, miniMapSize * tileSize + 2, RED);
 
     //Iterate over each visible tile in the window
     for (int z = startZ; z < endZ; ++z)
@@ -263,10 +307,13 @@ void World::DrawMiniMapSmall(const Player& player, const World& world, int scree
 
             //Determine the color - wall=WHITE, door=BLUE, empty=BLACK
             Color color = BLACK;//Empty
-            if (src.r == WHITE.r && src.g == WHITE.g && src.b == WHITE.b) color = WHITE;//Wall
-			else if (src.r == BLUE.r && src.g == BLUE.g && src.b == BLUE.b) color = BLUE;//Door
-			else if (src.r == BROWN.r && src.g == BROWN.g && src.b == BROWN.b) color = BROWN;//Floor
-			else if (ColorEq(src, ORANGE_N)) color = ORANGE_N;//Stairs N
+            if (ColorEq(src, WallColor)) color = WallColor;//Wall
+            else if (ColorEq(src, DoorColor1)) color = DoorColor1;//Door
+            else if (ColorEq(src, DoorColor2)) color = DoorColor2;//Door
+            else if (ColorEq(src, FloorColor)) color = FloorColor;//Floor
+            else if (ColorEq(src, StoneColor)) color = StoneColor;//Stone
+
+            else if (ColorEq(src, ORANGE_N)) color = ORANGE_N;//Stairs N
             else if (ColorEq(src, ORANGE_S)) color = ORANGE_S;//Stairs S
             else if (ColorEq(src, ORANGE_E)) color = ORANGE_E;//Stairs E
             else if (ColorEq(src, ORANGE_W)) color = ORANGE_W;//Stairs W

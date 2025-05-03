@@ -22,20 +22,84 @@ struct Map
 enum Block
 {
     //Basic
-    BLK_FLOOR,
     BLK_WALL,
-    BLK_DOOR,
+    BLK_DOOR1,
+    BLK_DOOR2,
+    BLK_FLOOR,
+    BLK_STONE,
     BLK_TEST,
+
     //Utility
     BLK_SPAWN,
+
     //Stairs
     BLK_STAIR_N,
     BLK_STAIR_S,
     BLK_STAIR_E,
     BLK_STAIR_W,
-    //Test
-    BLK_TEST6,
-    BLK_TEST7
+
+    //Brick
+    BLK_BRICK1,
+    BLK_BRICK2,
+    BLK_BRICK3,
+    BLK_BRICK4,
+
+    //Brick Faces
+    BLK_BRICK_FACE1,
+    BLK_BRICK_FACE2,
+    BLK_BRICK_FACE2_BLOOD,
+    BLK_BRICK_FACE3,
+    BLK_BRICK_FACE3_BLOOD,
+    BLK_BRICK_FACE4,
+    BLK_BRICK_FACE5,
+    BLK_RED_BRICK,
+
+    //Cement / Concrete
+    BLK_CEMENT_WALL,
+    BLK_CEMENT_BOTTOM1,
+    BLK_CEMENT_BOTTOM2,
+    BLK_CEMENT_BOTTOM3,
+    BLK_CEMENT_DECO1,
+    BLK_CEMENT_DECO2,
+    BLK_CEMENT_TOP1,
+    BLK_CEMENT_TOP2,
+
+    //Dark Steel
+    BLK_DARK_STEEL,
+    BLK_DARK_STEEL_BEAM,
+    BLK_DARK_STEEL_DECO,
+    BLK_DARK_STEEL_HAZARD,
+    BLK_DARK_STEEL_TOP1,
+    BLK_DARK_STEEL_TOP2,
+    BLK_DARK_STEEL_WALL,
+    BLK_DARK_STEEL_WALL_DECO,
+
+    //Steel
+    BLK_OLD_STEEL,
+    BLK_RUST_BEAM_UP,
+    BLK_RUST_BEAM_SIDE,
+    BLK_STEEL_BEAM1,
+    BLK_STEEL_BEAM2,
+    BLK_STEEL_DOOR,
+    BLK_STEEL_GRIP1,
+    BLK_STEEL_GRIP2,
+    BLK_STEEL_PLATE,
+    BLK_STEEL_REINFORCED,
+
+    //Grates
+    BLK_GRATE,
+    BLK_GRATE_RUST,
+
+    //Misc
+    BLK_SUPPORT_BEAM,
+    BLK_SWITCH_GREEN,
+    BLK_SWITCH_RED,
+    BLK_BIG_DOOR_LEFT1,
+    BLK_BIG_DOOR_RIGHT1,
+    BLK_BIG_DOOR_LEFT2,
+    BLK_BIG_DOOR_RIGHT2,
+    BLK_FENCE,
+    BLK_VENT,
 };
 //Block info for the palette
 struct BlockInfo
@@ -51,14 +115,6 @@ class WorldEditor
 {
 private:
 
-    //Block Textures
-    Texture2D TextureWall;
-    Texture2D TextureDoor;
-    Texture2D TextureFloor;
-    Texture2D TEST_TEXTURE;
-    //Utility Block Textures
-    Texture2D PlayerSpawnTex;
-
 
 
 public:
@@ -70,6 +126,7 @@ public:
 
     //Draws the 3D world and the UI
     void Draw3D(Camera3D&);
+    Shader alphaShader;
     //Update and handle user inputs for the editor
     void HandleInput(Camera3D&);
 

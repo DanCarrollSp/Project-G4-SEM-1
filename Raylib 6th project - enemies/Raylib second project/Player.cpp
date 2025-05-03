@@ -34,6 +34,8 @@ void Player::update(Camera camera)
 {
 	setFireRate();
 
+    float deltaTime = GetFrameTime();
+
 	position = camera.position;
     //Update bounding box for the final position
     hitbox.min = { camera.position.x - hitBoxWidth, camera.position.y - hitBoxHeight - 0.1f, camera.position.z - hitBoxWidth };
@@ -51,11 +53,12 @@ void Player::HandleInput()
 {
     //If the player is inputting movements then bobbing should be applied to the hand texture
     isMoving = (IsKeyDown(KEY_W) || IsKeyDown(KEY_A) || IsKeyDown(KEY_S) || IsKeyDown(KEY_D));
-
+    isSprinting = IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT);
 
     //Apply the bobbing effect
-    if (isMoving) bobbingTime += GetFrameTime() * bobbingSpeed;
-    else bobbingTime = 0.0f;
+    if (isMoving && !isSprinting) bobbingTime += GetFrameTime() * bobbingSpeed;
+    if (isMoving && isSprinting) bobbingTime += GetFrameTime() * bobbingSpeed + 0.1;
+    if (!isMoving) bobbingTime = 0.0f;
 
 
 
@@ -335,9 +338,9 @@ void Player::PreventBoundingBoxCollisions(const std::vector<BoundingBox>& obstac
             float deltaY = box.max.y - playerBox.min.y;
 
 			//Max step up height
-            const float maxStep = 0.6f;
+            const float maxStep = 0.3f;
 
-            if (deltaY > 0.0f && deltaY <= maxStep && TryStepUp(deltaY + 0.01f, camera, playerBox, obstacles))
+            if (deltaY > 0.0f && deltaY <= maxStep && TryStepUp(deltaY + 0.1f, camera, playerBox, obstacles))
             {
 				//Stepped up succesfully, keep the new X and Y pos
             }
@@ -364,12 +367,23 @@ void Player::PreventBoundingBoxCollisions(const std::vector<BoundingBox>& obstac
     {
         if (CheckCollisionBoxes(playerBox, box))
         {
-            //Collided on Z axis  --  revert Z movement
-            camera.position.z = oldCamPos.z;
+            //Check if its climbable first
+            float deltaY = box.max.y - playerBox.min.y;
 
-            //Update bounding box back to old Z pos
-            playerBox.min.z = camera.position.z - hitBoxWidth;
-            playerBox.max.z = camera.position.z + hitBoxWidth;
+            //Max step up height
+            const float maxStep = 0.3f;
+
+            if (deltaY > 0.0f && deltaY <= maxStep && TryStepUp(deltaY + 0.1f, camera, playerBox, obstacles))
+            {
+                //Stepped up succesfully, keep the new Z and Y pos
+            }
+            else
+            {
+                //Cant step over so just collide with it face first
+                camera.position.z = oldCamPos.z;
+                playerBox.min.z = camera.position.z - hitBoxWidth;
+                playerBox.max.z = camera.position.z + hitBoxWidth;
+            }
             break;
         }
     }
@@ -541,8 +555,8 @@ bool Player::TryStepUp(float deltaY, Camera& camera, BoundingBox& playerBox, con
             return false;
         }
 
-	//Low enough step up
-    return true;
+    //Low enough step up
+    return true; 
 }
 
 void Player::GroundCollisions(Camera& camera, BoundingBox& playerBox, const std::vector<BoundingBox>& obstacles, float maxClimb, float stepThreshold)
@@ -567,6 +581,8 @@ void Player::GroundCollisions(Camera& camera, BoundingBox& playerBox, const std:
 
 
         if (minDy == FLT_MAX) break;//No overlapping of player box and obstacle boxes = no climbing
+        if (minDy + climbed > maxClimb) break;//Dont attempt a step that would exceed whats lest of the budget
+
 		if (!TryStepUp(minDy + stepThreshold, camera, playerBox, obstacles)) break;//Step up failed = no climbing
 
         climbed += minDy + stepThreshold;//Passed checks, climb
@@ -580,8 +596,9 @@ void Player::GroundCollisions(Camera& camera, BoundingBox& playerBox, const std:
     }
 }
 
-//Applies gravity to the player if they are not on the ground in the form of downward velocity and resolves floor collisions
-// Applies gravity to the player by increasing downward velocity and resolving collisions
+
+
+//Applies gravity to the player if they are not on the ground in the form of downward velocity and resolves collisions
 void Player::ApplyGravity(Camera& camera, BoundingBox& playerBounds, const std::vector<BoundingBox>& obstacles)
 {
     //Time elapsed since last frame
@@ -616,7 +633,7 @@ void Player::ApplyGravity(Camera& camera, BoundingBox& playerBounds, const std::
         playerBounds.min.y += stepDistance;
         playerBounds.max.y += stepDistance;
 
-		//Take away how much weve moved down from how we have left to move down
+        //Take away how much weve moved down from how we have left to move down
         remainingDistance -= stepDistance;
 
 
@@ -624,7 +641,7 @@ void Player::ApplyGravity(Camera& camera, BoundingBox& playerBounds, const std::
         bool hasLanded = false;//assume we havent landed until we do the calc
         for (const auto& obstacle : obstacles)
         {
-			//If were not colliding with the obstacle, skip to the next one
+            //If were not colliding with the obstacle, skip to the next one
             if (!CheckCollisionBoxes(playerBounds, obstacle)) continue;
 
             //Snap player to the top of that obstacle
@@ -645,4 +662,114 @@ void Player::ApplyGravity(Camera& camera, BoundingBox& playerBounds, const std::
         //If weve landed, exit the loop
         if (hasLanded) break;
     }
+}
+
+
+
+
+
+
+void Player::MoveAndCollide(float deltaTime, Camera& camera, const std::vector<BoundingBox>& obstacles, const std::vector<BoundingBox>& doors)
+{
+    //Get desired direction from front vector
+    //front updated in camera code updat look
+    Vector3 forward = { front.x, 0, front.z };
+    forward = Vector3Normalize(forward);
+    Vector3 right = Vector3Normalize(Vector3CrossProduct(forward, { 0,1,0 }));
+
+    //Set movement
+    Vector3 move = { 0,0,0 };
+    if (IsKeyDown(KEY_W)) move = Vector3Add(move, forward);
+    if (IsKeyDown(KEY_S)) move = Vector3Subtract(move, forward);
+    if (IsKeyDown(KEY_D)) move = Vector3Add(move, right);
+    if (IsKeyDown(KEY_A)) move = Vector3Subtract(move, right);
+
+
+    //Acceleration and deceleration
+    float targetSpeed = (Vector3Length(move) > 0.0f) ? walkSpeed * (isSprinting ? sprintMultiplier : 1.0f) : 0.0f;
+
+    if (currentSpeed < targetSpeed) currentSpeed = std::min(currentSpeed + accelRate * deltaTime, targetSpeed);
+    else currentSpeed = std::max(currentSpeed - decelRate * deltaTime, targetSpeed);
+
+
+
+    //break up movement to stop moving through objects cause were going to fast
+    move = Vector3Normalize(move);
+    Vector3 fullDelta = Vector3Scale(move, currentSpeed * deltaTime);
+
+    const float maxStep = 0.1f;
+    int steps = (int)ceil(Vector3Length(fullDelta) / maxStep);
+    steps = std::max(steps, 1);
+    Vector3 stepDelta = Vector3Scale(fullDelta, 1.0f / steps);
+
+    //Apply each tiny step then immediatly collision resolve
+    for (int i = 0; i < steps; i++)
+    {
+        Vector3 oldPos = camera.position;
+        camera.position = Vector3Add(camera.position, stepDelta);
+
+
+        //Combine all colliders to stop movement with any one of them
+        std::vector<BoundingBox> allColliders;
+        for (const auto& doorCollider : doors) allColliders.push_back(doorCollider);
+        for (const auto& wallCollider : obstacles) allColliders.push_back(wallCollider);
+
+        PreventBoundingBoxCollisions(allColliders, hitbox, camera, oldPos);
+    }
+}
+
+
+
+
+
+
+void Player::UpdateLookAngles()
+{
+    //
+    float degreesToRadians = 3.1415f / 180.0f;
+
+    //Get mouse and set sensativity
+    Vector2 delta = GetMouseDelta();
+    yaw += delta.x * mouseSensitivity;
+    pitch -= delta.y * mouseSensitivity;//inverted Y
+
+    //Clamp pitch
+    if (pitch > 89.0f) pitch = 89.0f;
+    if (pitch < -89.0f) pitch = -89.0f;
+
+
+    //Rebuild front vector
+    front.x = cosf(yaw * degreesToRadians) * cosf(pitch * degreesToRadians);
+    front.y = sinf(pitch * degreesToRadians);
+    front.z = sinf(yaw * degreesToRadians) * cosf(pitch * degreesToRadians);
+    front = Vector3Normalize(front);
+}
+
+void Player::ApplyLook(Camera& camera)
+{
+    // Point camera target directly at position + front
+    camera.target = Vector3Add(camera.position, front);
+}
+
+
+void Player::UpdateFOV(Camera& camera, float deltaTime)
+{
+    //Gets how much into the sprint we are 0 to 1
+    float sprintRange = walkSpeed * (sprintMultiplier - 1.0f);
+    float extraSpeed = std::max(currentSpeed - walkSpeed, 0.0f);//How much faster we are than walk speed rn
+
+    //
+    float interpolatedSpeed = 0.0f;//Default no sprinting
+    if (sprintRange > 0.0f) interpolatedSpeed = extraSpeed / sprintRange;//Only compute ratio if tjere is some sprint range
+    interpolatedSpeed = std::clamp(interpolatedSpeed, 0.0f, 1.0f);
+    //
+    //targetFOV between base and max
+    float targetFOV = baseFOV + interpolatedSpeed * (maxFOV - baseFOV);
+
+
+    //Move currentFOV toward targetFOV by fovChangeRate
+    if (currentFOV < targetFOV) currentFOV = std::min(currentFOV + fovChangeRate * deltaTime, targetFOV);
+    else if (currentFOV > targetFOV) currentFOV = std::max(currentFOV - fovChangeRate * deltaTime, targetFOV);
+
+    camera.fovy = currentFOV;
 }

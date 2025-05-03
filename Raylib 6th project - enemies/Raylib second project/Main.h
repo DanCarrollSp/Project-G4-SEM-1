@@ -20,6 +20,7 @@
 #include "WorldEditor.h"
 #include "Decal.h"
 #include "UI.h"
+#include "Doors.h"
 
 
 //Functions
@@ -56,11 +57,6 @@ std::vector<std::vector<bool>> navGrid;//Grid for path finding
 
 ///Textures
 void InitTextures();
-//Tiles
-Texture2D floorTexture;
-Texture2D ceilingTexture;
-Texture2D wallTexture;
-Texture2D doorTexture;
 //Particles
 Texture2D bloodTexture;
 //Decals
@@ -92,7 +88,6 @@ bool stopEnemy = false;
 bool enemyMove = true;
 
 //Objects
-Globals globals;
 Scenes scenes;
 Player player;
 World world;
@@ -107,6 +102,7 @@ WorldEditor worldEditor;
 DecalManager decalManager;
 
 UI gameUI;
+
 
 //Shooting
 Vector3 crosshair;

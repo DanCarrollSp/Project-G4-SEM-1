@@ -1,14 +1,10 @@
 ﻿#include "Main.h"
 
-
 //Texture assignments
 void InitTextures()
 {
 	//Tile textures
-    floorTexture = LoadTexture("resources/World/floorTexture.png");
-    ceilingTexture = LoadTexture("resources/World/ceilingTexture.png");
-    wallTexture = LoadTexture("resources/World/wallTexture.png");
-    doorTexture = LoadTexture("resources/World/door.png");
+    initWorldTextures();
 
     //Particle textures
     bloodTexture = LoadTexture("resources/bt80.png");
@@ -169,16 +165,22 @@ void Update()
     //Track oldpos for collisions
     Vector3 oldCamPos = camera.position;
     //Movement
-    UpdateCamera(&camera, CAMERA_FIRST_PERSON);//Update the camera (movement)
+    //UpdateCamera(&camera, CAMERA_FIRST_PERSON);//Update the camera (movement)
+    float dt = GetFrameTime();
+    player.UpdateLookAngles();
+    player.MoveAndCollide(dt, camera, world.GetWallBoundingBoxes(), world.GetDoorBoundingBoxes());
+    player.ApplyLook(camera);
+    player.UpdateFOV(camera, dt);
+
     //Collision
-    player.PreventBoundingBoxCollisions(world.GetWallBoundingBoxes(), player.hitbox, camera, oldCamPos);//Prevent player from walking through bounding boxes
+    //player.PreventBoundingBoxCollisions(world.GetWallBoundingBoxes(), player.hitbox, camera, oldCamPos);//Prevent player from walking through bounding boxes
     for (auto& enemy : enemies) if (enemy.IsAlive())player.PreventBoundingBoxCollision(enemy.GetBoundingBox(), player.hitbox, camera, oldCamPos);//Prevent player from walking through bounding boxes
 
 
     //Player controls
     player.update(camera);
     player.HandleInput();
-    player.closeToWallCheck(camera, world.GetWallBoundingBoxes());
+    //player.closeToWallCheck(camera, world.GetWallBoundingBoxes());
 	//Player shooting
 	shooting();
 
@@ -210,6 +212,7 @@ void Update()
     //Decals
     decalManager.Update(GetFrameTime());
 
+    Doors::Update();
 }
 
 
@@ -220,7 +223,7 @@ void Draw()
     //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     BeginMode3D(camera);//Start of 3D Rendering
 
-
+    Doors::Draw();
 
     //World drawing (walls, doors, floor, ceiling)
     //Draw every layer from file
@@ -237,41 +240,90 @@ void Draw()
             {
 				//Get the current pixel color from the map
                 int index = (layer * MAP_LENGHT + z) * MAP_WIDTH + x;
-                Color pixelColor = mapPixels[index];
+                Color color = mapPixels[index];
 				//Get the world position of the current pixel
-                Vector3 cellPos = { x + 0.5f, worldY, z + 0.5f };
+                Vector3 pos = { x + 0.5f, worldY, z + 0.5f };
 
 
 
                 //Empty space = black
-                bool isEmpty = (pixelColor.r == BLACK.r && pixelColor.g == BLACK.g && pixelColor.b == BLACK.b);
+                bool isEmpty = (color.r == BLACK.r && color.g == BLACK.g && color.b == BLACK.b);
 
-                //Walls
-                if (pixelColor.r == WHITE.r && pixelColor.g == WHITE.g && pixelColor.b == WHITE.b)
-                    globals.DrawCubeTexture(wallTexture, cellPos, 1, 1, 1, WHITE);
+                //Determine texture to draw based on block color
+                if (ColorEq(color, WallColor)) globals.DrawCubeTexture(TextureWall, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, DoorColor1)) globals.DrawCubeTexture(TextureDoor, pos, 0.2, 1, 1, WHITE);
+                else if (ColorEq(color, DoorColor2)) globals.DrawCubeTexture(TextureDoor, pos, 1, 1, 0.2, WHITE);
+                else if (ColorEq(color, FloorColor)) globals.DrawCubeTexture(TextureFloor, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, StoneColor)) globals.DrawCubeTexture(TextureStone, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, TEST_COLOR)) globals.DrawCubeTexture(TEST_TEXTURE, pos, 1, 1, 1, WHITE);
 
-                //Doors
-                else if (pixelColor.r == BLUE.r && pixelColor.g == BLUE.g && pixelColor.b == BLUE.b)
-                    globals.DrawCubeTexture(doorTexture, cellPos, 1, 1, 1, WHITE);
+                //else if (ColorEq(color, SpawnColor)) globals.DrawCubeTexture(TextureSpawn, pos, 1, 1, 1, WHITE);
 
-                //Floor
-                else if (pixelColor.r == BROWN.r && pixelColor.g == BROWN.g && pixelColor.b == BROWN.b)
-                    globals.DrawCubeTexture(floorTexture, cellPos, 1, 1, 1, WHITE);
+                //Brick
+                else if (ColorEq(color, Brick1Color)) globals.DrawCubeTexture(TextureBrick1, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, Brick2Color)) globals.DrawCubeTexture(TextureBrick2, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, Brick3Color)) globals.DrawCubeTexture(TextureBrick3, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, Brick4Color)) globals.DrawCubeTexture(TextureBrick4, pos, 1, 1, 1, WHITE);
 
-                //Ceiling
-                else if (pixelColor.r == DARKBROWN.r && pixelColor.g == DARKBROWN.g && pixelColor.b == DARKBROWN.b)
-                    globals.DrawCubeTexture(ceilingTexture, cellPos, 1, 1, 1, WHITE);
+                //Brick Faces
+                else if (ColorEq(color, BrickFace1Color)) globals.DrawCubeTexture(TextureBrickFace1, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, BrickFace2Color)) globals.DrawCubeTexture(TextureBrickFace2, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, BrickFace2BloodColor)) globals.DrawCubeTexture(TextureBrickFace2Blood, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, BrickFace3Color)) globals.DrawCubeTexture(TextureBrickFace3, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, BrickFace3BloodColor)) globals.DrawCubeTexture(TextureBrickFace3Blood, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, BrickFace4Color)) globals.DrawCubeTexture(TextureBrickFace4, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, BrickFace5Color)) globals.DrawCubeTexture(TextureBrickFace5, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, RedBrickTextureColor)) globals.DrawCubeTexture(TextureRedBrickTexture, pos, 1, 1, 1, WHITE);
+
+                //Cement
+                else if (ColorEq(color, CementWallColor)) globals.DrawCubeTexture(TextureCementWall, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, CementWallBottom1Color)) globals.DrawCubeTexture(TextureCementWallBottom1, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, CementWallBottom2Color)) globals.DrawCubeTexture(TextureCementWallBottom2, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, CementWallBottom3Color)) globals.DrawCubeTexture(TextureCementWallBottom3, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, CementWallDeco1Color)) globals.DrawCubeTexture(TextureCementWallDeco1, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, CementWallDeco2Color)) globals.DrawCubeTexture(TextureCementWallDeco2, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, CementWallTop1Color)) globals.DrawCubeTexture(TextureCementWallTop1, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, CementWallTop2Color)) globals.DrawCubeTexture(TextureCementWallTop2, pos, 1, 1, 1, WHITE);
+
+                //Dark Steel
+                else if (ColorEq(color, DarkSteelColor)) globals.DrawCubeTexture(TextureDarkSteel, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, DarkSteelBeamColor)) globals.DrawCubeTexture(TextureDarkSteelBeam, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, DarkSteelDecoColor)) globals.DrawCubeTexture(TextureDarkSteelDeco, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, DarkSteelHazardColor)) globals.DrawCubeTexture(TextureDarkSteelHazard, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, DarkSteelTop1Color)) globals.DrawCubeTexture(TextureDarkSteelTop1, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, DarkSteelTop2Color)) globals.DrawCubeTexture(TextureDarkSteelTop2, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, DarkSteelWallColor)) globals.DrawCubeTexture(TextureDarkSteelWall, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, DarkSteelWallDecoColor)) globals.DrawCubeTexture(TextureDarkSteelWallDeco, pos, 1, 1, 1, WHITE);
+
+                //Steel
+                else if (ColorEq(color, OldSteelColor)) globals.DrawCubeTexture(TextureOldSteel, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, RustBeamUpColor)) globals.DrawCubeTexture(TextureRustBeamUp, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, RustBeamSideColor)) globals.DrawCubeTexture(TextureRustBeamSide, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, SteelBeam1Color)) globals.DrawCubeTexture(TextureSteelBeam1, pos, 0.4, 1, 0.4, WHITE);
+                else if (ColorEq(color, SteelBeam2Color)) globals.DrawCubeTexture(TextureSteelBeam2, pos, 0.4, 1, 0.4, WHITE);
+                else if (ColorEq(color, SteelDoorColor)) globals.DrawCubeTexture(TextureSteelDoor, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, SteelGrip1Color)) globals.DrawCubeTexture(TextureSteelGrip1, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, SteelGrip2Color)) globals.DrawCubeTexture(TextureSteelGrip2, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, SteelPlateColor)) globals.DrawCubeTexture(TextureSteelPlate, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, SteelReinforcedColor)) globals.DrawCubeTexture(TextureSteelReinforced, pos, 1, 1, 1, WHITE);
+
+                //Grates
+                else if (ColorEq(color, GrateColor)) globals.DrawCubeTexture(TextureGrate, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, GrateRustColor)) globals.DrawCubeTexture(TextureGrateRust, pos, 1, 1, 1, WHITE);
+
+                
+
 
 
                 //Stairs (alternate directions)
-                if (ColorEq(pixelColor, ORANGE_N))//N NORTH
-                    globals.DrawStair(cellPos, 0, floorTexture);
-                else if (ColorEq(pixelColor, ORANGE_S))//S SOUTH
-                    globals.DrawStair(cellPos, 1, floorTexture);
-                else if (ColorEq(pixelColor, ORANGE_E))//E EAST
-                    globals.DrawStair(cellPos, 2, floorTexture);
-                else if (ColorEq(pixelColor, ORANGE_W))//W WEST
-                    globals.DrawStair(cellPos, 3, floorTexture);
+                if (ColorEq(color, ORANGE_N))//N NORTH
+                    globals.DrawStair(pos, 0, TEST_TEXTURE);
+                else if (ColorEq(color, ORANGE_S))//S SOUTH
+                    globals.DrawStair(pos, 1, TEST_TEXTURE);
+                else if (ColorEq(color, ORANGE_E))//E EAST
+                    globals.DrawStair(pos, 2, TEST_TEXTURE);
+                else if (ColorEq(color, ORANGE_W))//W WEST
+                    globals.DrawStair(pos, 3, TEST_TEXTURE);
 
             }
         }
@@ -283,6 +335,31 @@ void Draw()
     BeginShaderMode(alphaShader);
     debug();//Debugging visuals ( example - shows box collider outlines and raycasts)
 
+    //Draw world voxels that may be opaque
+    for (int layer = 0; layer < LEVELS; ++layer)
+        for (int z = 0; z < MAP_LENGHT; ++z)
+            for (int x = 0; x < MAP_WIDTH; ++x)
+            {
+                int index = (layer * MAP_LENGHT + z) * MAP_WIDTH + x;
+                Color color = mapPixels[index];
+                if (color.a == 0 || ColorEq(color, BLACK)) continue;
+
+                Vector3 pos = { x + 0.5f, layer + 0.5f, z + 0.5f };
+                Vector3 bigDoorPos = pos;
+                bigDoorPos.y += 0.5;
+
+                // only the misc “alpha” textures here:
+                if (ColorEq(color, SupportBeamColor)) globals.DrawCubeTexture(TextureSupportBeam, pos, .33f, 1, .33f, WHITE);
+                else if (ColorEq(color, SwitchGreenColor)) globals.DrawCubeTexture(TextureSwitchGreen, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, SwitchRedColor)) globals.DrawCubeTexture(TextureSwitchRed, pos, 1, 1, 1, WHITE);
+                else if (ColorEq(color, BigDoorLeftColor1)) globals.DrawCubeTexture(TextureBigDoorLeft, bigDoorPos, 1, 2, 0.2, WHITE);//
+                else if (ColorEq(color, BigDoorRightColor1))globals.DrawCubeTexture(TextureBigDoorRight, bigDoorPos, 1, 2, 0.2, WHITE);
+                else if (ColorEq(color, BigDoorLeftColor2)) globals.DrawCubeTexture(TextureBigDoorLeft, bigDoorPos, 0.2, 2, 1, WHITE);//
+                else if (ColorEq(color, BigDoorRightColor2))globals.DrawCubeTexture(TextureBigDoorRight, bigDoorPos, 0.2, 2, 1, WHITE);
+                else if (ColorEq(color, FenceColor)) globals.DrawCubeTexture(TextureFence, pos, .01f, 1, 1, WHITE);
+                else if (ColorEq(color, VentColor)) globals.DrawCubeTexture(TextureVent, pos, 1, 1, 1, WHITE);
+            }
+
 	//Crosshair
     DrawSphere(crosshair, 0.0002f, crosshairColor);
 	//Draws the Decals
@@ -290,7 +367,6 @@ void Draw()
 
     for (auto& enemy : enemies) if (!stopEnemy)enemy.Draw(camera);//Draws the enemy, camera for billboarding
     particleSystem.DrawAll(camera);//Draws all active particle effects
-
 
     EndShaderMode();
     EndMode3D();

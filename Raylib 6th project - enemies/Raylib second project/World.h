@@ -22,13 +22,17 @@ public:
 
 	//Accesors
 	std::vector<BoundingBox> GetWallBoundingBoxes() const { return wallBoundingBoxes; }
-	std::vector<BoundingBox> GetDoorBoundingBoxes() const { return doorBoundingBoxes; }
+
+	std::vector<BoundingBox>& GetDoorBoundingBoxes();
+	const std::vector<BoundingBox>& GetDoorBoundingBoxes() const;
+
 
 	//Storage
 	Image map;
 	Color* pixels;
 	std::vector<BoundingBox> wallBoundingBoxes;
 	std::vector<BoundingBox> doorBoundingBoxes;
+
 
 	int mapWidth;
 	int mapHeight;

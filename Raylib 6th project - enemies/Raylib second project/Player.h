@@ -3,6 +3,7 @@
 //Global Libs
 #include "raylib.h"
 #include "raymath.h"
+#include <algorithm>
 
 //Local Libs
 #include "Globals.h"
@@ -127,7 +128,7 @@ public:
 
     void update(Camera camera);
 
-    Globals globals;//Giving player access to globals
+    //Globals globals;//Giving player access to globals
 
     void HandleInput();//Function handles all player controlls for animations.
     void Animate(int screenWidth, int screenHeight, Camera& camera, Vector3 mapPosition);//Draws the players hand on the screen (function called in main) 
@@ -155,5 +156,34 @@ public:
     //If the player walks into a slight step, move them up onto it (stairs, slopes)
     bool TryStepUp(float deltaY, Camera& camera, BoundingBox& playerBox, const std::vector<BoundingBox>& obstacles);
     //Ground detection, prevents player from falling through the floor
-    void GroundCollisions(Camera& camera, BoundingBox& playerBox, const std::vector<BoundingBox>& obstacles, float maxClimb = 3.0f, float stepThreshold = 0.01f);
+    void GroundCollisions(Camera& camera, BoundingBox& playerBox, const std::vector<BoundingBox>& obstacles, float maxClimb = 1.0f, float stepThreshold = 0.01f);
+
+
+
+    //New Movement and Looking
+    void MoveAndCollide(float deltaTime, Camera& camera, const std::vector<BoundingBox>& obstacles, const std::vector<BoundingBox>& doors);
+    float walkSpeed = 4.0f;
+    float sprintMultiplier = 2.1f;
+    bool isSprinting;
+
+    //Acceleration and deceleration
+    float currentSpeed = 0.0f;//Current
+    float accelRate = 20.0f;//Speeding up
+    float decelRate = 25.0f;//Slowing down
+    
+
+    //Looking around
+    void UpdateLookAngles();
+    void ApplyLook(Camera& camera);
+    float yaw = -90.0f;//0 faces +X, -90 faces -Z
+    float pitch = 0.0f;
+    float mouseSensitivity = 0.15f;
+    Vector3 front = { 0,0,-1 };
+
+    //FOV
+    void UpdateFOV(Camera& camera, float deltaTime);
+    float baseFOV = 45.0f;
+    float maxFOV = 50.0f;
+    float currentFOV = baseFOV;
+    float fovChangeRate = 60.0f;//Degrees per second change
 };
