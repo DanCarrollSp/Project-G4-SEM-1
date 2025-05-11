@@ -107,7 +107,7 @@ std::vector<std::vector<std::vector<bool>>> World::CreateNavigationGrid() const
                     if (layer > 0)//Safe guard against looking at indexs below
                     {
                         int below = ((layer - 1) * rowsPerLayer + y) * mapWidth + x;
-                        int belowAgain;
+                        int belowAgain = 0;
                         if (below > 0 && below < 31) belowAgain = ((below - 1) * rowsPerLayer + y) * mapWidth + x;
                         walkable = !ColorEq(pixels[below], BLACK);
                         if (belowAgain > 0 && below < 31) walkable = !ColorEq(pixels[belowAgain], BLACK);
