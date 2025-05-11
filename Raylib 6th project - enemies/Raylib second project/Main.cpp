@@ -47,7 +47,7 @@ int main(void)
     spawner.init();
 
 
-    Image imMap = LoadImage("resources/maps/custom_01.png");
+    Image imMap = LoadImage("resources/maps/custom_00.png");
     if (imMap.data)
     {
         //Build the world from the img
@@ -336,13 +336,13 @@ void Draw()
 
                 //Stairs (alternate directions)
                 if (ColorEq(color, ORANGE_N))//N NORTH
-                    globals.DrawStair(pos, 0, TEST_TEXTURE);
+                    globals.DrawStair(pos, 0, TextureStone);
                 else if (ColorEq(color, ORANGE_S))//S SOUTH
-                    globals.DrawStair(pos, 1, TEST_TEXTURE);
+                    globals.DrawStair(pos, 1, TextureStone);
                 else if (ColorEq(color, ORANGE_E))//E EAST
-                    globals.DrawStair(pos, 2, TEST_TEXTURE);
+                    globals.DrawStair(pos, 2, TextureStone);
                 else if (ColorEq(color, ORANGE_W))//W WEST
-                    globals.DrawStair(pos, 3, TEST_TEXTURE);
+                    globals.DrawStair(pos, 3, TextureStone);
 
             }
         }
