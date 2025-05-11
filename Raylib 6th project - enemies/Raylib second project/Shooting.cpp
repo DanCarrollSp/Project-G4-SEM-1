@@ -69,13 +69,13 @@ void ProcessBulletShot(
     {
         if (!enemy.IsAlive()) continue;
 
-        RayCollision collision = GetRayCollisionBox(ray, enemy.hitbox);
+        RayCollision collision = GetRayCollisionBox(ray, enemy.GetBoundingBox());
         if (collision.hit && collision.distance < closestHit)
         {
             closestHit = collision.distance;
             hitType = HIT_ENEMY;
             hitPoint = collision.point;
-            hitBox = enemy.hitbox;
+            hitBox = enemy.GetBoundingBox();
             hitEnemy = &enemy;
         }
     }
@@ -89,15 +89,19 @@ void ProcessBulletShot(
     {
         //Computes surface normal based on the hit position and bounding box
         Vector3 normal = EstimateNormalFromHit(hitPoint, hitBox);
-        //Adds decal to the surface
-        decalManager.AddDecal(hitPoint, normal, 0.02f, &bulletHole, 999);
+        //Adds decal to the surface - bigger hole for larger calibre
+        if (w1 || w4) decalManager.AddDecal(hitPoint, normal, 0.02f, &bulletHole, 999);
+        if (w2) decalManager.AddDecal(hitPoint, normal, 0.03f, &bulletHole, 999);
+        if (w3) decalManager.AddDecal(hitPoint, normal, 0.10f, &bulletHole, 999);
 	}
 	else if (hitType == HIT_DOOR)
 	{
         //Computes surface normal based on the hit position and bounding box
         Vector3 normal = EstimateNormalFromHit(hitPoint, hitBox);
         //Adds decal to the surface
-        decalManager.AddDecal(hitPoint, normal, 0.02f, &bulletHole, 2);
+        if (w1 || w4) decalManager.AddDecal(hitPoint, normal, 0.02f, &bulletHole, 2);
+        if (w2) decalManager.AddDecal(hitPoint, normal, 0.03f, &bulletHole, 2);
+        if (w3) decalManager.AddDecal(hitPoint, normal, 0.10f, &bulletHole, 3);
 	}
     else if (hitType == HIT_ENEMY)
     {
@@ -165,7 +169,7 @@ bool IsEnemyInSight(
         if (!enemy.IsAlive())
             continue;
 
-        RayCollision collision = GetRayCollisionBox(ray, enemy.hitbox);
+        RayCollision collision = GetRayCollisionBox(ray, enemy.GetBoundingBox());
         if (collision.hit && collision.distance < closestHit)
         {
             closestHit = collision.distance;

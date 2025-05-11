@@ -35,7 +35,7 @@ int main(void)
     //Sets the mouse position to the center of the screen on start (stops game starting with you looking at the ceiling)
     SetMousePosition(screenWidth / 2, screenHeight / 2);
     //Sets up raylibs perspective camera
-    camera.position = Vector3{ 10, 0.6f, 10 };//Camera pos
+    //camera.position = Vector3{ 10, 0.6f, 10 };//Camera pos
     camera.up = Vector3{ 0.0f, 1.0f, 0.0f };//Camera orientation
     camera.fovy = 45.0f;//Fov In degrees
     camera.projection = CAMERA_PERSPECTIVE;
@@ -44,18 +44,31 @@ int main(void)
 
     //Load textures
     InitTextures();
+    spawner.init();
 
 
-
-    //Seed random time for map generation
-    srand((unsigned int)time(NULL));
-    //Generate random map
-    Image imMap = world.GenerateProceduralMap(MAP_WIDTH, MAP_LENGHT);
-    //miniMap = LoadTextureFromImage(imMap);//Minimap
-    //Map creation using walls, doors, etc
-    mapPixels = LoadImageColors(imMap);//Color map, converts 'image' pixel color data into map data for collisions (black = passavble, else = not passable)
-    //Generate nav gird
-    navGrid = world.CreateNavigationGrid();
+    Image imMap = LoadImage("resources/maps/custom_01.png");
+    if (imMap.data)
+    {
+        //Build the world from the img
+        world.BuildFromImage(imMap);
+        //Pixel color data
+        mapPixels = LoadImageColors(imMap);
+        //Nav grid for pathfinding
+        navGrid = world.CreateNavigationGrid();
+        //Spawn
+        Vector3 spawnPos;
+        worldEditor.FindPlayerSpawn(spawnPos);
+        camera.position = spawnPos;
+    }
+    else
+    {
+        //Fallback to random gen world
+        Image imMap = world.GenerateProceduralMap(MAP_WIDTH, MAP_LENGHT);
+        mapPixels = LoadImageColors(imMap);
+        navGrid = world.CreateNavigationGrid();
+        UnloadImage(imMap);
+    }
 
 	
 
@@ -67,12 +80,16 @@ int main(void)
 
     
     //Temp
-    spawner.Spawn(0, { 5.0f, 0.5f, 5.0f });
-    spawner.Spawn(0, { 2.0f, 0.5f, 10.0f });
-    spawner.Spawn(0, { 8.0f, 0.5f, 10.0f });
-    spawner.Spawn(0, { 5.0f, 0.5f, 5.0f });
-    spawner.Spawn(0, { 2.0f, 0.5f, 10.0f });
-    spawner.Spawn(0, { 8.0f, 0.5f, 10.0f });
+    //spawner.Spawn(0, { 5.0f, 1.5f,20.0f });
+    //spawner.Spawn(1, { 7.0f, 1.5f, 5.0f });
+    //spawner.Spawn(2, { 7.0f, 1.5f, 35.0f });
+    //spawner.Spawn(0, { 5.0f, 1.5f, 7.0f });
+    //spawner.Spawn(0, { 7.0f, 1.5f, 7.0f });
+    //spawner.Spawn(0, { 2.0f, 0.5f, 10.0f });
+    //spawner.Spawn(0, { 8.0f, 0.5f, 10.0f });
+    //spawner.Spawn(0, { 5.0f, 0.5f, 5.0f });
+    //spawner.Spawn(0, { 2.0f, 0.5f, 10.0f });
+    //spawner.Spawn(0, { 8.0f, 0.5f, 10.0f });
 
 
 
@@ -184,7 +201,7 @@ void Update()
 	//Player shooting
 	shooting();
 
-    
+
     //Enemy AI ()
     for (auto& enemy : enemies)
     {
@@ -199,7 +216,7 @@ void Update()
             for (auto& other : enemies) if (&enemy != &other && other.IsAlive()) otherEnemies.push_back(&other);
 
 			//Move the enemy with the navgrid, colliding with the other enemies (if alive) and the walls
-            if (!enemyMove)enemy.Move(player.position, navGrid, world.GetWallBoundingBoxes(), otherEnemies, GetFrameTime());
+            if (!enemyMove)enemy.Move(player.position, navGrid, world.GetStairBoundingBoxes(), world.GetWallBoundingBoxes(), otherEnemies, GetFrameTime(), player);
         }
     }
     //spawner.DespawnDeadEnemies();
@@ -213,6 +230,8 @@ void Update()
     decalManager.Update(GetFrameTime());
 
     Doors::Update();
+
+    spawner.Update(player.position, navGrid);
 }
 
 
@@ -367,7 +386,10 @@ void Draw()
 
     for (auto& enemy : enemies) if (!stopEnemy)enemy.Draw(camera);//Draws the enemy, camera for billboarding
     particleSystem.DrawAll(camera);//Draws all active particle effects
+    spawner.Draw(camera);
 
+
+    
     EndShaderMode();
     EndMode3D();
     //Start of drawing//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -384,7 +406,7 @@ void Draw()
     auto ammo = player.GetAmmo();
     auto currentAmmo = std::get<0>(ammo);
     auto maxAmmo = std::get<1>(ammo);
-    gameUI.Draw(100, currentAmmo, maxAmmo);
+    gameUI.Draw(player.health, currentAmmo, maxAmmo);
     gameUI.DrawStatic();
 
     if (paused) DrawTexture(gameUI.pauseTexture, 0, 0, WHITE);//Pause menu
@@ -473,7 +495,7 @@ void shooting()
     Vector3 firstEnemyCollision = { 0, 0, 0 };
     for (auto& enemy : enemies)
     {
-        Vector3 col = player.calcBulletCollision(camera, enemy.hitbox);
+        Vector3 col = player.calcBulletCollision(camera, enemy.GetBoundingBox());
         //If a collision is detected, store it and break out of the loop.
         if (chechVec3(col, { 0, 0, 0 }))
         {
@@ -524,14 +546,23 @@ void debug()
     if (debugMode)
     {
         //Wall bounding boxes
-        {
-            std::vector<BoundingBox> boundingBoxes = world.GetWallBoundingBoxes();
-            for (const auto& box : boundingBoxes) DrawBoundingBox(box, RED); // Draw bounding box in red
-        }
+        //{
+        //    std::vector<BoundingBox> boundingBoxes = world.GetWallBoundingBoxes();
+        //    for (const auto& box : boundingBoxes) DrawBoundingBox(box, RED); // Draw bounding box in red
+        //}
         //Door bounding boxes
         {
             std::vector<BoundingBox> boundingBoxes = world.GetDoorBoundingBoxes();
             for (const auto& box : boundingBoxes) DrawBoundingBox(box, GREEN); // Draw bounding box in red
+        }
+        //Stair ai bounding boxes
+        {
+            std::vector<BoundingBox> boundingBoxes = world.GetStairBoundingBoxes();
+            for (const auto& box : boundingBoxes) DrawBoundingBox(box, YELLOW); // Draw bounding box in red
+        }
+        for (const auto& enemy : enemies)
+        {
+            //DrawBoundingBox(enemy., BLUE);
         }
         //Player bounding box
         DrawBoundingBox(player.hitbox, RED);
@@ -540,26 +571,26 @@ void debug()
 
     //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     /// Raycast hit points
-        Vector3 zero = { 0, 0, 0 };
+        //Vector3 zero = { 0, 0, 0 };
 
         //Wall-bullet collision point
-        for (int i = 0; i < world.GetWallBoundingBoxes().size(); i++)
-        {
-            Vector3 wallCollision = player.calcBulletCollision(camera, world.GetWallBoundingBoxes()[i]);
-            if (chechVec3(enemyCollision, zero)) DrawSphere(wallCollision, 0.1f, BLUE);
-        }
-        //Door-bullet collision point
-        for (int i = 0; i < world.GetDoorBoundingBoxes().size(); i++)
-        {
-            Vector3 doorCollision = player.calcBulletCollision(camera, world.GetDoorBoundingBoxes()[i]);
-            if (chechVec3(enemyCollision, zero)) DrawSphere(doorCollision, 0.1f, GREEN);
-        }
+        //for (int i = 0; i < world.GetWallBoundingBoxes().size(); i++)
+        //{
+        //    Vector3 wallCollision = player.calcBulletCollision(camera, world.GetWallBoundingBoxes()[i]);
+        //    if (chechVec3(enemyCollision, zero)) DrawSphere(wallCollision, 0.1f, BLUE);
+        //}
+        ////Door-bullet collision point
+        //for (int i = 0; i < world.GetDoorBoundingBoxes().size(); i++)
+        //{
+        //    Vector3 doorCollision = player.calcBulletCollision(camera, world.GetDoorBoundingBoxes()[i]);
+        //    if (chechVec3(enemyCollision, zero)) DrawSphere(doorCollision, 0.1f, GREEN);
+        //}
 
 
-        //Draws a RED sphere on a shot walls (drawn over by blue hit detection for now)
-        if (player.hitTarget && player.shot)DrawSphere(player.hitPoint, 0.1f, RED);
+        ////Draws a RED sphere on a shot walls (drawn over by blue hit detection for now)
+        //if (player.hitTarget && player.shot)DrawSphere(player.hitPoint, 0.1f, RED);
 
-        DrawSphere(enemyCollision, 0.1f, BLUE);
+        //DrawSphere(enemyCollision, 0.1f, BLUE);
     //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     }
 }

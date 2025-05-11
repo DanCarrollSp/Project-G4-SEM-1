@@ -9,10 +9,10 @@ void Scenes::init()
 {
 	//Main menu
 	titleScreen = LoadTexture("resources/Menu/Main/TitleScreen.png");
-	newGame = LoadTexture("resources/Menu/Main/NewGame.png");
-	loadGame = LoadTexture("resources/Menu/Main/LoadGame.png");
-	options = LoadTexture("resources/Menu/Main/Options.png");
-	quit = LoadTexture("resources/Menu/Main/Quit.png");
+	newGame = LoadTexture("resources/Menu/Main/PLAY.png");
+	loadGame = LoadTexture("resources/Menu/Main/PARTICLES.png");
+	options = LoadTexture("resources/Menu/Main/LEVELS.png");
+	quit = LoadTexture("resources/Menu/Main/QUIT.png");
 	//Recs
 	newGameRec = { 960 - ngWidth / 2, 355, ngWidth, 100 };
 	loadGameRec = { 965 - lgWidth / 2, 530, lgWidth, 100 };

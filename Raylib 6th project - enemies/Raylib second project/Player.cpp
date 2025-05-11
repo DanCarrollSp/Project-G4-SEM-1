@@ -37,6 +37,7 @@ void Player::update(Camera camera)
     float deltaTime = GetFrameTime();
 
 	position = camera.position;
+    layer = position.y;
     //Update bounding box for the final position
     hitbox.min = { camera.position.x - hitBoxWidth, camera.position.y - hitBoxHeight - 0.1f, camera.position.z - hitBoxWidth };
     hitbox.max = { camera.position.x + hitBoxWidth, camera.position.y + hitBoxHeight - 0.1f,  camera.position.z + hitBoxWidth };
@@ -47,6 +48,13 @@ void Player::update(Camera camera)
     if (IsKeyPressed(KEY_THREE)) { unequipAll(); shotgunEquipped = true; cancelReload(); }
     if (IsKeyPressed(KEY_FOUR)) { unequipAll(); smgEquipped = true; cancelReload(); }
 
+
+    //Resets invulnerability after a hit
+    if (invulnerabilityTimer > 0.0f)
+    {
+        invulnerabilityTimer -= deltaTime;
+        if (invulnerabilityTimer < 0.0f) invulnerabilityTimer = 0.0f;
+    }
 }
 
 void Player::HandleInput()
@@ -209,6 +217,11 @@ void Player::Animate(int screenWidth, int screenHeight, Camera& camera, Vector3 
         smgReload = LoadSound("resources/Sounds/smgReload.wav");
         reloadingTexture = LoadTexture("resources/Guns/reloading.png");
         clickSound = LoadSound("resources/Sounds/Click.wav");
+        //
+        painSound = LoadSound("resources/Sounds/pain.wav");
+        hit33Texture = LoadTexture("resources/hit33.png");
+        hit67Texture = LoadTexture("resources/hit67.png");
+        hit99Texture = LoadTexture("resources/hit99.png");
 
 
         done = true;
@@ -270,6 +283,13 @@ void Player::Animate(int screenWidth, int screenHeight, Camera& camera, Vector3 
         DrawTextureEx(handTexture, handPos, 0.0f, 1, WHITE);
     }
 
+
+    if (invulnerabilityTimer > 0)
+    {
+        if (hit33) DrawTexture(hit33Texture, 0, 0, WHITE);
+        if (hit67) DrawTexture(hit67Texture, 0, 0, WHITE);
+        if (hit99) DrawTexture(hit99Texture, 0, 0, WHITE);
+    }
 }
 
 
@@ -772,4 +792,24 @@ void Player::UpdateFOV(Camera& camera, float deltaTime)
     else if (currentFOV > targetFOV) currentFOV = std::max(currentFOV - fovChangeRate * deltaTime, targetFOV);
 
     camera.fovy = currentFOV;
+}
+
+void Player::takeDamage(float damageAmount)
+{
+    if (invulnerabilityTimer <= 0.0f)
+    {
+        health -= damageAmount;
+        invulnerabilityTimer = invulnerabilityDuration;
+
+
+        //Reset
+        hit33 = false;
+        hit67 = false;
+        hit99 = false;
+        //
+        PlaySound(painSound);
+        if (health < 30) hit99 = true;
+        else if (health < 70 && health >= 30) hit67 = true;
+        else hit33 = true;
+    }
 }

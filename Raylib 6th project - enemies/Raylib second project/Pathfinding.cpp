@@ -3,18 +3,21 @@
 
 //Returns Manhattan distance between two grid coords
 //Heuristic for grid based movement with no diagonal moves (TODO: Smooth out the movement)
-static float ManhattanHeuristic(int x1, int y1, int x2, int y2)
+static float ManhattanHeuristic(int x1, int y1, int l1, int x2, int y2, int l2)
 {
     //abs(x2 - x1) gives horizontal distance
     //abs(y2 - y1) gives vertical distance
     //Sum is Manhattan distance.
-    return (float)(abs(x2 - x1) + abs(y2 - y1));
+    return (float)(abs(x2 - x1) + abs(y2 - y1) + abs(l2 - l1));
 }
 
 //Checks if the given (x , y) coords are within the grid bounds (returns true if it is, false if outside bounds
-static bool boundsCheck(int x, int y, int width, int height)
+static bool boundsCheck(int x, int z, int l, const auto& grid)
 {
-    return (x >= 0 && x < width && y >= 0 && y < height);
+    if (l < 0 || l >= (int)grid.size()) return false;
+    if (z < 0 || z >= (int)grid[l].size())  return false;
+    if (x < 0 || x >= (int)grid[l][z].size()) return false;
+    return true;
 }
 
 
@@ -23,152 +26,173 @@ static bool boundsCheck(int x, int y, int width, int height)
 //Gets the A* path from startPos to goalPos
 //startPos and goalPos are world coordinates values
 //The grid parameter is a 2D boolean vector containing true(walkable) and false(blocked values)
-std::vector<Vector3> AStarPath(Vector3 startPos, Vector3 goalPos, const std::vector<std::vector<bool>>& grid)
+std::vector<Vector3> AStarPath(Vector3& startPos, Vector3& goalPos, const std::vector<std::vector<std::vector<bool>>> grid, const std::vector<StairEdge>& stairs)
 {
     //Converts the world positions to grid coordinates
     //floorf essentially rounds the float values to the nearest int, used to get the grid containing those co0rds
     int startX = (int)floorf(startPos.x);
-    int startY = (int)floorf(startPos.z);
+    int startZ = (int)floorf(startPos.z);
+    int startL = int(floorf(startPos.y));
     int goalX = (int)floorf(goalPos.x);
-    int goalY = (int)floorf(goalPos.z);
+    int goalZ = (int)floorf(goalPos.z);
+    int goalL = int(floorf(goalPos.y));
 
-    //Determine the grid dimensions.
-    int height = (int)grid.size();
-    if (height == 0) return {};//Return an empty path if the grid has no rows
-    int width = (int)grid[0].size();
-
-
-    //Error checking: Ensures both the start and goal positions are in bounds, and that there are walkable grid cells.
-    if (!boundsCheck(startX, startY, width, height) || !boundsCheck(goalX, goalY, width, height) || !grid[startY][startX] || !grid[goalY][goalX]) return {};
+    //Allocate
+    int lenght = (int)grid.size();
+    int height = (int)grid[0].size();
+    int width = grid[0][0].size();
 
 
-    //Creates a 2D grid (vector of vectors) to store pointers to Node objects
+    //Error checking: Ensures both the start and goal positions are in bounds, and that there are walkable grid cells
+    if (!boundsCheck(startX, startZ, startL, grid) ||
+        !boundsCheck(goalX, goalZ, goalL, grid) ||
+        !grid[startL][startZ][startX] ||
+        !grid[goalL][goalZ][goalX])
+        return {};
+
+
+    //Creates a 3D grid (vector of vectors) to store pointers to Node objects
     //Each Node is a cell in the grid, storing pathfinding costs and parent pointers
-    std::vector<std::vector<Node*>> nodeGrid(height, std::vector<Node*>(width, nullptr));
+    std::vector<std::vector<std::vector<Node*>>> nodes(lenght,std::vector<std::vector<Node*>>(height,std::vector<Node*>(width, nullptr)));
 
     //Instantiate a Node for each grid cell
-    for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) nodeGrid[y][x] = new Node(x, y);
+    for (int l = 0; l < lenght; l++)for (int z = 0; z < height; z++)for (int x = 0; x < width; x++)nodes[l][z][x] = new Node(x, z, l);
 
 
     //Lambda function to clean up all allocated Node pointers, freeing up memory when done with this current path
-    auto cleanup = [&]()
-        {
-            for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) delete nodeGrid[y][x];
-
+    auto cleanup = [&]() {
+            for (int l = 0; l < lenght; l++) for (int z = 0; z < height; z++) for (int x = 0; x < width; x++) delete nodes[l][z][x];
         };
 
 
 
 
     //Gets pointers to the start and goal nodes using grid coords
-    Node* startNode = nodeGrid[startY][startX];
-    Node* goalNode = nodeGrid[goalY][goalX];
+    Node* startNode = nodes[startL][startZ][startX];
+    Node* goalNode = nodes[goalL][goalZ][goalX];
 
-    //Initialize two sets: 
+
+
+    //Min path using fcost
+    //returns true when a's fCost is greater than b’s (so smallest-fCost comes out on top)
+    auto compareNodes = [](Node* a, Node* b) { return a->fCost > b->fCost; };
     //1. openSet: Nodes needing evaluation
     //2. closedSet: Nodes that have been evaluated
-    std::vector<Node*> openSet;
+    std::priority_queue<Node*, std::vector<Node*>, decltype(compareNodes)> openSet(compareNodes);//Capture type
     std::vector<Node*> closedSet;
-    openSet.push_back(startNode);
+    openSet.push(startNode);
+
 
     //Initialize the start nodes cost values to find paths
     startNode->gCost = 0.0f;//Start with a cost of 0
-    startNode->hCost = ManhattanHeuristic(startNode->x, startNode->y, goalNode->x, goalNode->y);
+    startNode->hCost = ManhattanHeuristic(startNode->x, startNode->z, startNode->layer, goalNode->x, goalNode->z, goalNode->layer);
     startNode->fCost = startNode->gCost + startNode->hCost;
+    openSet.push(startNode);
 
 
     //Defines the four possible movement directions (up , down , left , right)
     //prevents diagonal movement
-    const int dirs[4][2] = { {1, 0}, {-1, 0}, {0, 1}, {0, -1} };
+    const int dirs[4][3] = { {1, 0, 0}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0} };
 
 
 
     //Main A* loop
     //Continue while there are nodes in the open set
-    while (!openSet.empty())
+    while (!openSet.empty()) 
     {
-        //Sorts the open set by fCost (lowest first)
-        std::sort(openSet.begin(), openSet.end(), [](Node* a, Node* b) { return a->fCost < b->fCost; });
+        //Pick the next node - the one with lowest fCost
+        Node* currentNode = openSet.top(); openSet.pop();
 
-        //The node with the smallest fCost is the current node
-        Node* current = openSet.front();
-        //Removes current node from the open set
-        openSet.erase(openSet.begin());
-
-        //Check if the current node is the goal
-        if (current == goalNode)
+        //Check if weve reached the goal
+        if (currentNode == goalNode) 
         {
-            //If goal is reached, reconstruct the path from goal to start by following the parent pointers
+            //Reconstruct the path if we have
             std::vector<Vector3> path;
-            Node* temp = goalNode;
-            while (temp != nullptr)
+            //Convert grid cords back to 3D world cords - centre of the cell
+            for (Node* p = goalNode; p; p = p->parent) 
             {
-                //Converts grid coordinates back to world coordinates
-                //Adding 0.5f to center the position in the cell
-                Vector3 pos;
-                pos.x = (float)temp->x + 0.5f;
-                //pos.y = startPos.y;//Can set the y pos for future proofing
-                pos.z = (float)temp->y + 0.5f;
-                path.push_back(pos);
-                //Move to the parent node
-                temp = temp->parent;
+                path.push_back({float(p->x) + 0.5f,float(p->layer),float(p->z) + 0.5f});
             }
 
-            //The path constructs from goal to start, reverse it to get the correct order
+            //Reverse our reconstructed goal-to-start path to get start-t-goal
             std::reverse(path.begin(), path.end());
 
-            
-            cleanup();//Clean up memory
-            return path;//Return the reconstructed path.
+            //Cleanup nodes
+            cleanup();
+            return path;
         }
 
 
-        //Adds the current node to the closed set  to mark it as checked
-        closedSet.push_back(current);
+        //Mark this node as checked by moving it to the closed set
+        closedSet.push_back(currentNode);
 
-        //Loops through all valid neighbouring cells (4 directional movement)
-        for (auto& d : dirs)
+        //Check neighbours
+        for (auto& direction : dirs) 
         {
-            //Calculates neighbour coordinates
-            int nx = current->x + d[0];
-            int ny = current->y + d[1];
+            int neighbourX = currentNode->x + direction[0];
+            int neighbourZ = currentNode->z + direction[1];
+            int neighbourLayer = currentNode->layer + direction[2];
 
-            //Skip if its out of bounds
-            if (!boundsCheck(nx, ny, width, height))
-                continue;
-            //Skip if the cell is not walkable
-            if (!grid[ny][nx])
-                continue;
+            //Skip if out of bounds or not walkable
+            if (!boundsCheck(neighbourX, neighbourZ, neighbourLayer, grid)) continue;
+            if (!grid[neighbourLayer][neighbourZ][neighbourX]) continue;
 
 
-            //Get the neighbour node from the node grid
-            Node* neighbour = nodeGrid[ny][nx];
+            //Get the gCost (cost from start node to this neighbour node
+            Node* neighbourNode = nodes[neighbourLayer][neighbourZ][neighbourX];
+            //Skip if already checked
+            if (std::find(closedSet.begin(), closedSet.end(), neighbourNode) != closedSet.end()) continue;
 
-            //If the neighbour has already been evaluated skip it
-            if (std::find(closedSet.begin(), closedSet.end(), neighbour) != closedSet.end()) 
-                continue;
 
-            //Calculate the gCost for the neighbour
-            //Adding 1.0f because moving from one cell to an adjacent cell costs 1
-            float newGCost = current->gCost + 1.0f;
-
-            //If the neighbour is not in the openSet (not discovered) OR if the new path to the neighbour is cheaper than a previously discovered path then -
-            if (std::find(openSet.begin(), openSet.end(), neighbour) == openSet.end() || newGCost < neighbour->gCost)
+            //Get the cost from the start to this neighbour
+            float gCostCheck = currentNode->gCost + 1.0f;
+            //Better path check
+            bool better = (gCostCheck < neighbourNode->gCost) || neighbourNode->parent == nullptr;
+            if (better) 
             {
-                //Update the neighbour cost values
-                neighbour->gCost = newGCost;
-                neighbour->hCost = ManhattanHeuristic(neighbour->x, neighbour->y, goalNode->x, goalNode->y);
-                neighbour->fCost = neighbour->gCost + neighbour->hCost;
-                //Set the current node as the neighbours parent for path reconstruction
-                neighbour->parent = current;
+                neighbourNode->parent = currentNode;//Set path to currentNode
+                neighbourNode->gCost = gCostCheck;
+                neighbourNode->hCost = ManhattanHeuristic(neighbourX, neighbourZ, neighbourLayer, goalX, goalZ, goalL);//Recalc heuristic to goal
+                neighbourNode->fCost = neighbourNode->gCost + neighbourNode->hCost;//Total estimated cost
+                openSet.push(neighbourNode);//Add neighbour to openset for future exploration in that direction
+            }
+        }
 
-                //If the neighbour was not already in openSet - adds it
-                if (std::find(openSet.begin(), openSet.end(), neighbour) == openSet.end()) openSet.push_back(neighbour);
+
+        //Stair edges
+        for (auto& stair : stairs)
+        {
+            //If current cell is a stair entry point
+            if (stair.entryX == currentNode->x && stair.entryZ == currentNode->z && stair.entryLayer == currentNode->layer)
+            {
+                //Destination of the stair
+                int neighbourX = stair.exitX;
+                int neighbourZ = stair.exitZ;
+                int neighbourLayer = stair.exitLayer;
+
+                //Skip if out of bounds or already checked
+                if (!boundsCheck(neighbourX, neighbourZ, neighbourLayer, grid)) continue;
+                Node* neighbourNode = nodes[neighbourLayer][neighbourZ][neighbourX];
+                if (std::find(closedSet.begin(), closedSet.end(), neighbourNode) != closedSet.end()) continue;
+
+
+                //Cost of taking stairs (kept ot same amount as normal path
+                float gCostCheck = currentNode->gCost + 1.0f;
+                //Check if its the better path
+                bool better = (gCostCheck < neighbourNode->gCost) || neighbourNode->parent == nullptr;
+                if (better)
+                {
+                    neighbourNode->parent = currentNode;//Set path to currentNode
+                    neighbourNode->gCost = gCostCheck;
+                    neighbourNode->hCost = ManhattanHeuristic(neighbourX, neighbourZ, neighbourLayer, goalX, goalZ, goalL);//Recalc heuristic to goal
+                    neighbourNode->fCost = neighbourNode->gCost + neighbourNode->hCost;//Total estimated cost
+                    openSet.push(neighbourNode);//Add neighbour to openset for future exploration in that direction
+                }
             }
         }
     }
 
-    //If the loop ends without finding a path to the goal clean up and return an empty path
+    //If we exit without finding the goal, there is no path, handling this in the enemy ai by just straight line pathing to playerpos, update it to wander?
     cleanup();
     return {};
 }
@@ -182,7 +206,7 @@ std::vector<Vector3> AStarPath(Vector3 startPos, Vector3 goalPos, const std::vec
 //Path Smoothing using line of sight
 
 //Checks if a straight line from the start to the end is collision free (Bresenhams algorithm)
-bool LineOfSight( const Vector3& startPosition, const Vector3& endPosition, const std::vector<std::vector<bool>>& collisionGrid)
+bool LineOfSight(const Vector3& startPosition, const Vector3& endPosition, const std::vector<std::vector<bool>>& collisionGrid)
 {
     //Converts world coordinates to grid cell indexs
     int startX = static_cast<int>(floorf(startPosition.x));
@@ -190,44 +214,37 @@ bool LineOfSight( const Vector3& startPosition, const Vector3& endPosition, cons
     int endX = static_cast<int>(floorf(endPosition.x));
     int endY = static_cast<int>(floorf(endPosition.z));
 
-    //Get deltas
-    int deltaX = abs(endX - startX);
-    int deltaY = abs(endY - startY);
+    //Gets grid dimensions and returns out if the grid is empty
+    int gridRows = (int)collisionGrid.size();
+    if (gridRows == 0) return false;
+    int gridCols = (int)collisionGrid[0].size();
 
-    //Get step direction for X and Y
-    int stepX = (startX < endX) ? 1 : -1;
-    int stepY = (startY < endY) ? 1 : -1;
 
-	//Initialize error term for Bresenhams algorithm
-    int errorTerm = deltaX - deltaY;
+    //Get the horizontal difference between start and end (2D still)
+    Vector3 difference = { endPosition.x - startPosition.x, 0.0f, endPosition.z - startPosition.z };
+    float distance = sqrtf(difference.x * difference.x + difference.z * difference.z);
 
-    //Traverse the grid
-    while (true)
+    //Sample every micro units to stricten the path towards the original raw grid path center (lower is stricter)
+    const float sampleSpacing = 0.0001f;
+    int steps = (int)ceilf(distance / sampleSpacing);
+    steps = std::max(steps, 1);
+
+    //Walk along the line incrementaly (steps)
+    for (int i = 0; i <= steps; ++i) 
     {
-        //If this grid cell is blocked, no line of sight
-        if (!collisionGrid[startY][startX]) return false;
+        //Calc along the line
+        float incrementalSteps = i / (float)steps;
+        float sampleX = startPosition.x + difference.x * incrementalSteps;
+        float sampleZ = startPosition.z + difference.z * incrementalSteps;
 
-        //If weve reached the target cell, line of sight is clear
-        if (startX == endX && startY == endY) break;
+        //Convert to grid cells
+        int gridX = (int)floorf(sampleX);
+        int gridZ = (int)floorf(sampleZ);
 
-        //Double the error term for decision making (simpler and better than dealing with floats)
-        int doubleError = 2 * errorTerm;
-
-        //Move in X direction if needed
-        if (doubleError > -deltaY)
-        {
-            errorTerm -= deltaY;
-            startX += stepX;
-        }
-        //Move in Y direction if needed
-        if (doubleError < deltaX)
-        {
-            errorTerm += deltaX;
-            startY += stepY;
-        }
+        //If sample is outside grid or a blocked cell no line of sight
+        if (gridZ < 0 || gridZ >= gridRows || gridX < 0 || gridX >= gridCols) return false;
+        if (!collisionGrid[gridZ][gridX]) return false;
     }
-
-	//No obsticles were hit, return true (We have line of sight)
     return true;
 }
 

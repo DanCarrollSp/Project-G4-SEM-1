@@ -72,42 +72,69 @@ Image World::GenerateProceduralMap(int width, int height)
 
 
 
-std::vector<std::vector<bool>> World::CreateNavigationGrid() const
+std::vector<std::vector<std::vector<bool>>> World::CreateNavigationGrid() const 
 {
-    //Creates a 2D grid the size of the map
-    std::vector<std::vector<bool>> grid(mapHeight, std::vector<bool>(mapWidth, true));
+    //Map dimensions
+    int rowsPerLayer = 100;
+    int layerCount = mapHeight / rowsPerLayer;
 
-    //Loop over image pixels to mark blocked vs walkable
-    //Color Keys:
-    //   WHITE = blocked
-    //   BLUE  = walkable (door)
-    //   BLACK = walkable
-    //   else  = walkable
-    for (int y = 0; y < mapHeight; y++)
+    //grid[layerCount][rowsPerLayer][mapWidth]
+    std::vector<std::vector<std::vector<bool>>> grid(layerCount, std::vector<std::vector<bool>>(rowsPerLayer, std::vector<bool>(mapWidth, false)));
+
+    //Loop through levels x and z cords and
+    for (int layer = 0; layer < layerCount; ++layer) 
     {
-        for (int x = 0; x < mapWidth; x++)
+        for (int y = 0; y < rowsPerLayer; ++y) 
         {
-            bool isWalkable = true;//Default to walkable
-
-            //White cells (walls)(blocked)
-            if (pixels[y * mapWidth + x].r == WHITE.r && pixels[y * mapWidth + x].g == WHITE.g && pixels[y * mapWidth + x].b == WHITE.b)
+            for (int x = 0; x < mapWidth; ++x)
             {
-                isWalkable = false;
-            }
+                //Get index from 3D cords
+                int index = (layer * rowsPerLayer + y) * mapWidth + x;
+                const Color& color = pixels[index];
 
-            //Sets current cell of the nav grid to walkable or blocked
-            grid[y][x] = isWalkable;
+                //Default to not walkable
+                bool walkable = false;
+
+
+
+                //STAIRS - walkable
+                bool isStair = ColorEq(color, ORANGE_N) || ColorEq(color, ORANGE_S) || ColorEq(color, ORANGE_E) || ColorEq(color, ORANGE_W);
+                if (isStair) walkable = true;
+                
+                //BLACK/EMPTY - walkable as long as there is a non black tile BELOW
+                if (ColorEq(color, BLACK))
+                {
+                    if (layer > 0)//Safe guard against looking at indexs below
+                    {
+                        int below = ((layer - 1) * rowsPerLayer + y) * mapWidth + x;
+                        int belowAgain;
+                        if (below > 0 && below < 31) belowAgain = ((below - 1) * rowsPerLayer + y) * mapWidth + x;
+                        walkable = !ColorEq(pixels[below], BLACK);
+                        if (belowAgain > 0 && below < 31) walkable = !ColorEq(pixels[belowAgain], BLACK);
+                    }
+
+                }
+
+
+                //Set walkable or not to that grid index
+                grid[layer][y][x] = walkable;
+            }
         }
     }
 
     return grid;
 }
 
+
+
+
+
 std::vector<BoundingBox>& World::GetDoorBoundingBoxes()
 {
     return doorBoundingBoxes;
 }
-const std::vector<BoundingBox>& World::GetDoorBoundingBoxes() const {
+const std::vector<BoundingBox>& World::GetDoorBoundingBoxes() const 
+{
     return doorBoundingBoxes;
 }
 
@@ -216,7 +243,8 @@ void World::BuildFromImage(const Image& img)
                             box.max = { x + (i + 1) * 0.25f, baseY + stepTopHeights[i], z + 1.0f };
                             break;
                         }
-                        // Add this stair step as a wall (solid surface)
+
+                        //Adds this stair step as a wall (solid surface)
                         wallBoundingBoxes.push_back(box);
                     }
                 };
@@ -255,6 +283,10 @@ void World::BuildFromImage(const Image& img)
             //Big doors
             if (ColorEq(v, BigDoorLeftColor1) || ColorEq(v, BigDoorRightColor1)) pushUnique(doorBoundingBoxes, 1, 2, 0.2);
             if (ColorEq(v, BigDoorLeftColor2) || ColorEq(v, BigDoorRightColor2)) pushUnique(doorBoundingBoxes, 0.2, 2, 1);
+
+
+            //Stair ai climb box
+            if (ColorEq(v, ORANGE_N) || ColorEq(v, ORANGE_S) || ColorEq(v, ORANGE_E) || ColorEq(v, ORANGE_W)) pushUnique(stairBoundingBoxes, 1, 1, 1);
         }
     }
 }

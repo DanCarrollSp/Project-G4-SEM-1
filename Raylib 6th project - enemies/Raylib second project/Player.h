@@ -30,6 +30,14 @@ public:
     Texture2D aimingTexture;
     Texture2D shotTexture;
     Texture2D idleHandTexture;
+    //
+    bool hit33 = false;
+    bool hit67 = false;
+    bool hit99 = false;
+    Texture2D hit33Texture;
+    Texture2D hit67Texture;
+    Texture2D hit99Texture;
+
 
     //Hand
     Vector2 handPos = { 0, 0 };
@@ -60,6 +68,7 @@ public:
     //Out of ammo
     Sound clickSound;
     //
+    Sound painSound;
 
 
 
@@ -109,6 +118,7 @@ public:
     int collTestCellX;
     int collTestCellY;
     Vector3 position = { 10, 0.5f, 10 };
+    int layer = 0;
     //Player hitbox
     BoundingBox hitbox;
     float hitBoxWidth = 0.23f;
@@ -163,7 +173,7 @@ public:
     //New Movement and Looking
     void MoveAndCollide(float deltaTime, Camera& camera, const std::vector<BoundingBox>& obstacles, const std::vector<BoundingBox>& doors);
     float walkSpeed = 4.0f;
-    float sprintMultiplier = 2.1f;
+    float sprintMultiplier = 1.38f;
     bool isSprinting;
 
     //Acceleration and deceleration
@@ -186,4 +196,10 @@ public:
     float maxFOV = 50.0f;
     float currentFOV = baseFOV;
     float fovChangeRate = 60.0f;//Degrees per second change
+
+
+    void takeDamage(float damageAmount);
+    int health = 100;
+    float invulnerabilityTimer;
+    float invulnerabilityDuration = 0.5f;
 };
