@@ -848,7 +848,11 @@ void Enemy::HandleShooting(const Vector3& target, const std::vector<BoundingBox>
     for (auto& wall : walls)
     {
         auto rc = GetRayCollisionBox(ray, wall);
-        if (rc.hit && Vector3Distance(ray.position, rc.point) < dist) los = false; break;
+        if (rc.hit && Vector3Distance(ray.position, rc.point) < dist)
+        {
+            los = false;
+            break;
+        }
     }
 
 
